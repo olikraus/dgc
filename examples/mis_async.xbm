@@ -1,0 +1,20 @@
+;
+; Usual state minimization allow merging states 2 and 5.
+; Asynchronos state minimization must avoid this.
+;
+
+input   l               0       
+input   a               1
+input   b               1
+
+output  q               0
+
+
+0       1       	 a-           | q+
+1       2       [l+]           b-     | q-
+1       5       [l-]           b-     | q-
+2       3       	 a+    b+     | 
+3       4       	 a-           | q+ 
+4       2       [l+]           b-     | q-
+4       5       [l-]           b-     | q-
+5       0       	 a+    b+     | 

@@ -1,0 +1,7 @@
+input c 0
+output o 0
+
+ 0  1 c+ | o+
+ 1  2 c- |
+ 2  3 c+ | o-
+ 3  0 c- | 

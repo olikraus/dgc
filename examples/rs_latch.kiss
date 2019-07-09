@@ -1,0 +1,16 @@
+#
+# simple RS-Latch
+#
+# use digital gate compiler:
+#   dgc -async -nodlycor -nrs -fb rs_latch.kiss
+# 
+.i 2
+.o 1
+.ilb r s
+.ob q
+.r s0
+-0 s0 s0 0
+01 s0 s1 1
+0- s1 s1 1
+10 s1 s0 0
+

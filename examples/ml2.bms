@@ -1,0 +1,25 @@
+; multi latch (bits: 2, states: 8)
+input i0 0
+output o0 1
+input i1 0
+output o1 0
+; output change, o0 = 1
+0 1 	i0+ 	| 
+0 6 	i1+ 	| o0- o1+ 
+1 7 	i1+ 	| o0- o1+ 
+2 3 	i0+ 	| 
+; output change, o1 = 1
+4 1 	i0+ 	| o1- o0+ 
+4 6 	i1+ 	| 
+5 7 	i1+ 	| 
+6 3 	i0+ 	| o1- o0+ 
+; go zero tree, o0 = 1
+3 2 	i0- 	| 
+2 0 	i1- 	| 
+3 1 	i1- 	| 
+1 0 	i0- 	| 
+; go zero tree, o1 = 1
+7 6 	i0- 	| 
+6 4 	i1- 	| 
+7 5 	i1- 	| 
+5 4 	i0- 	| 

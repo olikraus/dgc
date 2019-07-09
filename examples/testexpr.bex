@@ -1,0 +1,31 @@
+# Test file to verify the correctness of the bex parser and tree converter.
+# This file should be equal to testexpr.pla
+# "dgsop -eq testexpr.bex testexpr.pla" should return "equal".
+
+
+y001 <= a;
+y002 <= a & b;
+y003 <= a | b;
+y004 <= !a;
+y005 <= !a & b;
+y006 <= !a & !b;
+y007 <= !(a & b);
+y008 <= !a | b;
+y009 <= !a | !b;
+y010 <= !(a | b);
+y011 <= a & b & c;
+y012 <= a | b | c;
+y013 <= a | b & c;
+y014 <= a & b | c;
+y015 <= !(a & b | c);
+y016 <= !(!(!(!(!(!(!(!(!(a&b)&c)&d)&e)&f)&g)&h)&i)&j);
+y017 <= f==g==h==i==j;
+y018 <= f!=g!=h!=i!=j;
+y019 <= (((f==g)==h)==i)==j;
+y020 <= (f==g)==((h==i)==j);
+y021 <= !(!(!(!f==g)==h)==i)==j;
+y022 <= f!=g==h!=i==j;
+y023 <= !(!(!(!(!(!(!(!(!(a&b)|c)&d)|e)&f)|g)&h)|i)&j);
+y024 <= (((((a&b&!d)|(!a&c))&(!b|d))|(!c&e))&!e);
+y025 <= (((a==b)&c)|d)!=(((!c&!b)|a)&!d);
+

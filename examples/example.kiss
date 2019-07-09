@@ -1,0 +1,32 @@
+#
+# example.kiss
+# 
+# The kiss format starts with some commands, followed by a description of all
+# state transitions. 
+# The kiss file starts with the number of input and output signals
+#
+# This example contains 2 inputs and 3 outputs
+.i 2
+.o 3
+
+# The .ilb and .ob provide labels for the input and output lines
+.ilb a b
+.ob x y z
+
+# The '.r' command is required to assign a valid reset state.
+.r state1
+
+# now all transitions follow
+# if a & b are zero, stay in 'state1'
+00 state1 state1 000
+# if b changes to one, go to 'state2'
+01 state1 state2 011
+# again, stay in state2, if nothing else changes
+01 state2 state2 011
+# go to state3, if a also go to one
+11 state2 state3 110
+11 state3 state3 110
+# do not leave state3 if ony one input changes to zero
+-1 state3 state3 110
+1- state3 state3 110
+00 state3 state1 000

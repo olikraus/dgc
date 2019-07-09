@@ -1,0 +1,21 @@
+name edge_rs_latch
+input r 0
+input s 0
+output q 0
+
+0 1 s+ | q+
+1 2 s- 
+2 3 r+ | q-
+3 0 r-
+0 3 r+
+2 1 s+
+4 0 s-
+7 3 s-
+5 1 r-
+6 2 r-
+4 7 r+
+7 4 r-
+5 6 s-
+6 5 s+
+3 5 s+ | q+
+1 7 r+ | q-

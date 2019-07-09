@@ -1,0 +1,17 @@
+;
+; try xbm2pla -mis mis_fail.xbm
+;
+; State minimization will fail for this example. Maybe a bug...
+; Nevertheless, output is ok, because state minimization will be skipped.
+;
+
+input l 0
+input b 1
+output q 1
+0 1 [l+] b- | q-
+0 3 [l-] b- | q-
+2 1 [l+] b- | q-
+2 3 [l-] b- | q-
+3 0 b+      | q+
+1 2 b+      | q+
+

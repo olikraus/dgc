@@ -1,0 +1,73 @@
+# d-latch example
+#
+# A DGD file contains one or more entities.
+# Such an entity contains either
+#  an import statement
+# or 
+#  a netlist description.
+#
+# The import statement allows the inclusion of 
+# any other legal file format for dgc.
+# Port names are taken from the imported file.
+
+# In this example the file d_latch.bex has the
+# input ports 
+#   e  enable data
+#   d  data input
+# and the output 
+#   r  output for the reset input of a rs-latch
+#   s  output for the set input of a rs-latch
+entity d_latch_logic
+{
+  import "d_latch.bex";
+}
+
+# Additionaly the import statement might be changed
+# by one or more option statements. Options are similar
+# to the commandline options of DGC. In this case the
+# finite state machine is created without flip-flops (async)
+# and without a reset line (nrs).
+# There can be one or more space separated options for one 
+# option statement.
+#
+# The rs-latch has the inputs 'r' and 's' and one output port 'q'
+entity rs_latch
+{
+  option async nrs;
+  import "rs_latch.kiss";
+}
+
+# An entity can contain a netlist instead of the 
+# import statement.
+# A netlist requries:
+#  - One or more port statements to describe the 
+#    input and output lines. Syntax is:
+#    'port' ('input'|'output') {<portname>}
+#  - Some 'use' statements. The first argument of the 
+#    'use' statement is the name of a previously 
+#    defined entity. All following names represent the 
+#    name of the included subcircuits. Syntax is:
+#    'use' <entityname> {<componentname>}
+#  - Several 'join' statements. A 'join' statements 
+#    connects two or more ports together. If the same
+#    port is used in two different join statements, 
+#    all ports of the two 'join' statements are connected.
+#    For example
+#      join a:x b:y;
+#      join a:x c:z;
+#    is the same as
+#      join a:x b:y c:z;
+#    The syntax for the 'join' statement is:
+#      'join' {<componentname>':'<portname>}
+entity d_latch
+{
+  port input d e;
+  port output q;
+  use d_latch_logic l;
+  use rs_latch rs;
+  join l:d d;
+  join l:e e;
+  join l:r rs:r;
+  join l:s rs:s;
+  join rs:q q;  
+}

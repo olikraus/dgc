@@ -1,0 +1,86 @@
+# cap_error.kiss
+# the following command produces an error:
+# ./dgc cap_error.kiss -cap -ll 4 -oe loop.edif -noptl
+.i 6
+.o 1
+.r bbb
+
+------ aaa ccc 0
+----01 ccc ccc 0
+----10 ccc ccc 0
+----11 ccc ccc 0
+----00 ccc bbb 0
+--1--- bbb bbb 0
+--0--- bbb ddd 0
+--0--- ddd nna 0
+--01-- nna nna 0
+--00-- nna  na 0
+100---  na  na 0
+010---  na  na 0
+110---  na nps 0
+000---  na nms 0
+--0--- nms nmw 0
+100-1- nmw nmw 0
+010-1- nmw nmw 0
+110-1- nmw nmw 0
+--0--1 nmw nmw 0
+010-00 nmw ddd 0
+100-00 nmw ddd 0
+110-00 nmw ddd 0
+000--0 nmw  ms 0
+--0---  ms mna 0
+--01-- mna mna 0
+--00-- mna  ma 0
+000---  ma  ma 0
+010---  ma mns 0
+100---  ma mns 0
+110---  ma mns 0
+--0--- mns mnw 0
+000-1- mnw mnw 0
+--0--1 mnw mnw 0
+010--0 mnw ddd 0
+100--0 mnw ddd 0
+110--0 mnw ddd 0
+000-00 mnw  ms 0
+
+--0--- nps npw 0
+000-1- npw npw 0
+010-1- npw npw 0
+100-1- npw npw 0
+--0--1 npw npw 0
+000-00 npw ddd 0
+010-00 npw ddd 0
+100-00 npw ddd 0
+110--0 npw  ps 1
+--0---  ps pna 1
+--01-- pna pna 1
+--00-- pna  pa 1
+110---  pa  pa 1
+000---  pa pns 0
+010---  pa pns 0
+100---  pa pns 0
+--0--- pns pnw 0
+110-1- pnw pnw 0
+--0--1 pnw pnw 0
+000--0 pnw ddd 0
+100--0 pnw ddd 0
+010--0 pnw ddd 0
+110-00 pnw  ps 1
+--1--- ddd aaa 0
+--1--- nna aaa 0
+--1---  na aaa 0
+--1--- nms aaa 0
+--1--- nmw aaa 0
+--1---  ms aaa 0
+--1--- mna aaa 0
+--1---  ma aaa 0
+--1--- mns aaa 0
+--1--- mnw aaa 0
+--1--- nps aaa 0
+--1--- npw aaa 0
+--1---  ps aaa 0
+--1--- pna aaa 0
+--1---  pa aaa 0
+--1--- pns aaa 0
+--1--- pnw aaa 0
+

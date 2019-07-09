@@ -1,0 +1,20 @@
+#
+# A description for a D-Latch 
+# This KISS file is free of hazards under (the current implementation of) 
+# the extended burst mode specifikation.
+#
+# This is ok:            dgc -async -fbo dl.kiss
+# Use of -bmc will fail: dgc -bmc -async -fbo dl.kiss
+#
+.i 2
+.o 1
+.ilb e d
+.ob q
+.r s0
+0- s0 s0 0
+10 s0 s0 0
+10 s1 s0 0
+0- s1 s1 1
+11 s1 s1 1
+11 s0 s1 1
+

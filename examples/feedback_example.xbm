@@ -1,0 +1,9 @@
+feedback s 0 20;
+input a 0;
+output x 0;
+output y 0;
+0 1 a+ | x+ s+
+1 2 s+ | y+ x- s-
+2 0 s- a- | y-
+
+

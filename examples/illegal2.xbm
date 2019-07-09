@@ -1,0 +1,15 @@
+;
+;  seems to contain two errors:
+;    1. unknown values for 2 -> 1 -> 2
+;    2. subset violation 1 -> 2 and 1 -> 0
+;
+;  see also illegal5.xbm
+;
+
+input a 0
+input d 0
+output q 0
+0 1 d+     | q+
+2 1 a- d*  | q+
+1 2 a+ d*  | q-
+1 0 d-     | q-

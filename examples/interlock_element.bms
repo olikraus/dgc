@@ -1,0 +1,34 @@
+;
+; implements an interlock element (mutual exclusion circuit)
+;
+; digital gate compiler:
+;   dgc -async -mis -fbo -nrs -noptl interlock_element.bms
+;
+; xbm conversion tool:
+;   xbm2pla -mis -fbo interlock_element.bms
+;  
+; This file contains a burst mode description. See interlock_element.xbm
+; for an extended burst mode description. 'xbm2pla' generates the same
+; result for both descriptions.
+;
+; var+    rising edge
+; var-    falling edge
+;
+
+
+input r1 0
+input r2 0
+output a1 0
+output a2 0
+
+
+0 1 r1+ | a1+
+1 0 r1- | a1-
+0 2 r2+ | a2+
+2 0 r2- | a2-
+1 3 r2+ |
+3 1 r2- |
+2 4 r1+ |
+4 2 r1- |
+3 2 r1- | a1- a2+
+4 1 r2- | a2- a1+

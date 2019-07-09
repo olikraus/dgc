@@ -1,0 +1,12 @@
+;
+; A transition 'd+' must not befollowd by another 'd+'
+; 
+input a 1
+input b 0
+input d 0
+output x 0
+output y 0
+0 1 b+ d+ | x+
+1 0 b- d- | x-
+1 2 a- d+ | y+
+2 1 a+ d- | y-

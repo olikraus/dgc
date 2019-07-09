@@ -1,0 +1,22 @@
+;
+; The cycle with states 1 and 2 does not specify the behaviour of 
+; variable d. The (perhaps strange) error with the transition 1 -> 2
+; means that there is same more information required for variable 'd'.
+; Expanding 1 -> 2 to 'a+ d*' could be a good choice, but would also not
+; help in this example. Removing the 'd*' from transition 2 -> 1 is
+; the only way to correct this example.
+;
+; Rule:       x* must be followed by x*, x+ or x-. No empty transition 
+;             on x is allowed.
+; Exception:  Use 'xbm2pla -ddcedge' or 'xbm2pla -ddcmix' to apply '*' to
+;             all variables.
+;
+
+input a 0
+input b 0
+input d 0
+output q 0
+0 1 d+     | q+
+2 1 a- d*  | q+
+1 2 a+     | q-
+1 0 d-     | q-

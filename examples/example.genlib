@@ -1,0 +1,46 @@
+#
+# example.genlib
+#
+# A description of the genlib format can be found in 
+# the 'sis/genlib' subdirectory of sis.
+# The download location for 'sis' is:
+# http://www-cad.eecs.berkeley.edu/Software/software.html
+# 
+#
+# A gate description starts with the keyword GATE and is followed by
+# <name> <area> <boolean function>
+# The boolean function can contain the unary operator '!' (not) and
+# the binary operators '+' (logical or) and '*' (logical and)
+# The boolean function is terminated with ';'. The keyword 'PIN'
+# is followed by <name> <phase> <inload> <maxload>
+#   <rise-blk-dly> <rise-fanout-dly>
+#   <fall-blk-dly> <fall-fanout-dly>
+# 
+ GATE inv   2     y = ! a;
+  PIN a INV 1 999    1 0.3  1  0.3
+
+ GATE nand2  3    y = ! (a * b);
+  PIN a INV 1 999    1.2 0.4  1.2  0.4
+  PIN b INV 1 999    1.2 0.4  1.2  0.4
+
+
+ GATE nor2  4 y = ! (a + b);
+  PIN a INV 1 999    1.2 0.4  1.2  0.4
+  PIN b INV 1 999    1.2 0.4  1.2  0.4
+
+ GATE and2  5    y = (a * b);
+  PIN a NONINV 1 999    1.2 0.4  1.2  0.4
+  PIN b NONINV 1 999    1.2 0.4  1.2  0.4
+
+ GATE or2  5    y = (a + b);
+  PIN a NONINV 1 999    1.2 0.4  1.2  0.4
+  PIN b NONINV 1 999    1.2 0.4  1.2  0.4
+
+# D-FF with aktive high reset
+LATCH "dff_set_reset_re" 5 Q=(D)*R;
+PIN D NONINV 1 999 1.3 0.4 1.3 0.4
+PIN R NONINV 1 999 1.3 0.4 1.3 0.4
+SEQ Q ANY RISING_EDGE
+CONTROL CLK 1 999 1.3 0.4 1.3 0.4
+CONSTRAINT * .2 .2 
+

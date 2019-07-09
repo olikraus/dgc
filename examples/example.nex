@@ -1,0 +1,54 @@
+#
+# example.nex
+#
+# nex = numeric expression
+# 
+# The 'nex' format describes a numerical expression. Such an expression
+# can be converted into one or more boolean functions (for example with dgsop).
+# 
+# A mathematical expression uses integer variables. Each bit in such
+# a variable corresponds to one port. The syntax for such a variable is:
+# variablename ( portname_n, portname_n-1, ..., portname_1, portname_0 ).
+# The n-th portname is mapped into the n-th bit of the integer value for
+# the variable.
+# 
+# This example calculates the product of two 4 bit values. Input
+# values are provided by two 4 bit values. Outputs are the 4 bit result y
+# and an additional flag to signal an overflow.
+# 
+input a(a3 a2 a1 a0) b(b3 b2 b1 b0)
+output y(y3 y2 y1 y0) o(ov)
+#
+# Each numeric expression starts with a keyword:
+# - The 'onset' section is used to describe the normal output values
+# - In the 'dcset' section if a port has the value 1 it is assumed that
+#   this value could be 1 or 0: In other words if the value is 0, the value
+#   of the 'onset' section is used. If the value is 1, the value might be
+#   1 or 0. 
+# Adding a 'dcset' can reduce the size of the boolean function.
+#
+# The following 'onset' defines the product of the two variables.
+# The overflow signal is set, if the product exceeds 4 bits.
+# Inside mathematical assignment the usual operators can be used.
+#  '*' product
+#  '/' integer division
+#  '+' plus
+#  '-' minus
+#  '<<', '>>' shift operators
+#  '<=', '>=', '<', '>' compare operators
+#  Additionally the following functions can be used:
+#   if(condition, result for true, result for false)
+# The optional arguments for the 'onset' keyword provide the range
+# of the input variables.
+#
+onset a(0 15) b(0 15)
+y = a*b;
+o = if(a*b > 15, 1, 0);
+#
+# If the result does not fit into 4 bit any more, the result could
+# be undefined. Removing the dcset section would force the output ports to
+# be the lower 4 bit of the result.
+#
+dcset a(0 15) b(0 15)
+y = if(a*b > 15, 15, 0);
+

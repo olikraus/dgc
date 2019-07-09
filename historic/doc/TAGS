@@ -1,0 +1,10 @@
+Release Tags
+cvs tag -R tagname
+
+v-0-91    version 0.91
+v-0-92    version 0.92 (12 jan 2002)
+v-0-93    version 0.93 (8 feb 2002)
+v-0-94    version 0.94 (13 mar 2002)
+v-0-95    version 0.95 (16 jun 2002)
+v-0-96    version 0.96 (15 oct 2002)
+v-0-97    version 0.97 (9 oct 2003)

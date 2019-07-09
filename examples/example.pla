@@ -1,0 +1,39 @@
+#
+# example.pla
+#
+# The PLA-format is known as the input format of espresso, a tool
+# of the university of california, Berkeley.
+# The PLA-format is a description of one or more boolean functions.
+# The ".o" command specifies the number of boolean functions:
+# This example contains 3 functions
+.o 3
+#
+# A boolean function usually depends on several different variables.
+# The total number of different variables must be supplied with the
+# ".i" command. Here, we have 4 variables
+.i 4
+# 
+# There might be some optional labels for each input variable and
+# boolean function. Input variables are called 'a', 'b', 'c' and 'd':
+.ilb a b c d
+#
+# Output functions are  'x', 'y' and 'z'
+.ob x y z
+#
+# A function is specified by a sum of product form: A single line in
+# the PLA file represents a AND operation of some variables:
+# A '0' means that the vartiable is inverted, a '-' ignores a variable.
+# the following line describes the term x = a AND NOT b
+10-- 100
+#
+# More than one line are connected with a logical OR operation.
+# The term y = ( a AND b ) OR ( NOT a AND c ) could be written as:
+11-- 010
+0-1- 010
+# 
+# The last function is z = a AND d, but we additionaly do not care
+# about the output value if b is zero:
+1--1 001
+-0-- 002
+
+

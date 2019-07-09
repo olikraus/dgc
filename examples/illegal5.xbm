@@ -1,0 +1,25 @@
+;
+; Transition 2 -> 3 is executed with a falling edge on 'd'. But directed 
+; don't care on varibale 'd' of transition 1 -> 2 allows that 'd' enters 
+; state 2 with value 0 (the falling edge has already been executed).
+; 
+; A correction could be the following one:
+; 0 1    d+  | q+
+; 1 2 a+ d*  | 
+; 2 3 a- d-  | q-
+; Now the execution of 2 -> 3 is delayed until the falling edge of 'a'.
+; Variable 'd' might go down anywhere between state 1 and 3.
+;
+; Rule: A valid transition requires at least one edge triggered signal
+;       which was not preceeded by an directed don't care.
+;
+
+input a 0
+input d 0
+output q 0
+
+0 1    d+  | q+
+1 2 a+ d*  | 
+2 3    d-  | q-
+3 0 a-     |
+

@@ -1,0 +1,48 @@
+#
+# example.bex
+#
+# bex = boolean expression
+#
+# The 'bex' format describes boolean expressions. A 'bex' file can contain one 
+# or more assignments to output variables. Each assignment must be terminated
+# by ';'.
+# 
+#
+#   o1 <= 'expression_1';
+#   ...
+#   on <= 'expression_n';
+#
+# Expressions must contain a valid boolean expressions. Input and output
+# variables are created as soon as new variables are used.
+# There can be an optional statement to assign the sequence of variables.
+# The command invars() assigns some or all input variables. The argument
+# contains the names of the input variables separated with spaces.
+invars(a b c);
+
+# The command outvars() could be used to assign the sequence of output
+# variables.
+
+# The following line assigns the boolean functions 'a and b' to the
+# output signal y1
+y1 <= a & b;
+
+# The next line introduces a second output variable. Its value
+# is calculated with the 'or' operation.
+y2 <= a | (b & !c);
+
+# One might also use '!' for negation of a signal
+y3 <= !a;
+
+# ok, here is a more complex example
+y4 <= (a & b) | (!a & !b);
+
+# and another example with a new variable 'c'
+y5 <= !( a & b & c );
+
+# 'bex' also supports equal '==' and not equal '!=' operators
+y6 <= a == b;
+y7 <= a != !b;
+
+
+
+

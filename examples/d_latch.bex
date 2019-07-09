@@ -1,0 +1,7 @@
+#
+# d_latch.bex
+#
+# used together with rs_latch.kiss and d_latch.dgd
+#
+r <= e & !d;
+s <= e &  d;

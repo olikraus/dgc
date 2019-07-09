@@ -1,0 +1,9 @@
+
+
+create tutorial
+
+texi2html -version 
+>= 1.64
+
+(texi2html -nomenu -nonumber -split section dgc_tutorial.texi)
+texi2html -nonumber -split section dgc_tutorial.texi

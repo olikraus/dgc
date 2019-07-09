@@ -1,0 +1,751 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@tex
+\mag=800
+@end tex
+@setfilename dgcprogs.info
+
+@contents
+
+@chapter DGC project
+
+A system for the creation of digital circuits.
+
+@section Overview
+
+Digital circuits can be used to build some kind of hardware.
+Often a hardware is an application specific integrated circuit 
+or a programmable logic array. In this both cases hardware is
+created from a 'netlist'. Such a netlist contains information 
+about the connection of some basic building blocks (gates).
+
+DGC is a system for the creation of netlist files by using an 
+abstract spezification of digital systems. 
+The following types of specification are supported:
+@table @strong
+  @item PLA 
+    Sum of product expression
+  @item BEX 
+    Boolean expression
+  @item NEX 
+    Numeric expression
+  @item KISS 
+    State machine description
+  @item BMS/XBM 
+    Burst mode specification, Subset of state machine description
+  @item DGD 
+    Script language to build hierarchical designs
+@end table
+
+For the conversion from an abstract description to a netlist,
+DGC needs to know what kind of basic building blocks are available.
+Such a file is called a gate library.
+
+@section Input Files
+
+This is a list of currently supported input formats:
+
+@table @strong
+  @item PLA (.pla, .pl)
+  This is a sum of product representation of several
+  boolean functions. This format is used in the well known
+  espresso tool (University of California).
+  @url{http://www-cad.eecs.berkeley.edu/Software/software.html}
+
+  @item BEX (.bex, boolean expression)
+  This is a more readable format for boolean functions.
+  See example.bex for a description.
+  
+  @item NEX (.nex, numeric expression)
+  Extracts boolean functions from mathematical expressions.
+  See example.nex for a description.
+
+  @item KISS (.kiss)
+  A description of a finite state machine. This file format
+  is used by the tools KISS, NOVA and others. Some of these
+  tooles can be found in the SIS package
+  @url{http://www-cad.eecs.berkeley.edu/Software/software.html}
+  The file example.kiss can be found in 
+  @code{<installation-path>/share/dgc}
+  
+  @item BMS (.bms, burst mode spezification)
+  Also a file format for the description of finite state machines.
+  It is a spezial restricted format to describe asynchronous
+  state machines. A description of the format is included
+  in the MINIMALIST package (Columbia University)
+  @url{http://www.cs.columbia.edu/async/}
+
+  @item XBM (.xbm, extended burst mode spezification)
+  The file format XBM includes some extentions compared to BMS.
+  The XBM parser has been introduced with version 0.96 of @code{dgc}.
+  The XBM parser also handles BMS files.
+
+  @item DGD (.dgd, digital gate design)
+  This is a small script language to import and use all supported 
+  file formats. See the file 
+    @code{<installation-path>/share/dgc/d_latch.dgd}
+  for an example.
+@end table
+
+@subsection XBM/BMS Format
+
+The XBM format is a line oriented input specification for state machines.
+The specification has two parts:
+@enumerate 
+@item
+  Specification of the input and output variables.
+  
+  Use the keywords @code{input}, @code{output} and @code{feedback} to describe
+  the variables. A @code{feedback} variable is a special case which creates
+  an input and an output port. Additionaly @code{dgc} will create a
+  delay line between the input and output port of a @code{feedback} variable.
+  
+@item
+  Specification of transitions between states.
+  
+  A transition describes the condition for leaving a state and
+  jumping to a new state. A usual line looks like this: 
+  
+  @code{<source state> <destination state> <condition> | <output change>}.
+  
+  There is one additional command: The @code{reset} command allows the
+  specification of the reset state in cases where the reset state cannot be
+  calculated by the program.
+@end enumerate 
+
+The specification can contain any number of empty lines. A comment is
+starts with a @code{;} or @code{#}.
+The following table gives a detailed description of the keywords:
+
+@table @code
+@item input <name> <reset value>
+  Defines a new input variable with the specified @code{<name>}. 
+  @code{<name>} can be used in the @code{<condition>} of a state transition.
+  The @code{<reset value>} can be @code{0} or @code{1} and defines the
+  signal level which is applied to the state machine in the case of a
+  reset.
+  
+@item output <name> <reset value>
+  Defines a new output variable with the specified @code{<name>}. 
+  @code{<name>} can be used in the @code{<output change>}-part of 
+  a state transition.
+  The @code{<reset value>} can be @code{0} or @code{1} and defines the
+  signal level which is generated at the output port after reset 
+  of the state machine.
+
+@item feedback <name> <reset value> <delay>
+  Defines a new feedback variable with the specified @code{<name>}.
+  @code{<name>} can be used in the @code{<condition>}
+  and in the @code{<output change>}-part of 
+  a state transition. One could say: @code{feedback} generates an
+  input and an output variable. @code{<reset value>} has the same
+  meaning as for input and output variables.
+  The @code{<delay>} argument specifies the length of the delay chain
+  which is generated by the synthesis tool. Changing a feedback variable
+  in the output part of a transition 
+  will cause the same change appearing at the input variable @code{<name>}.
+  
+@item reset <reset state>  
+  Specifies the @code{<reset state>}. Usually the reset state is calculated
+  by the XBM parser based on the reset values of each variable. 
+
+@end table
+
+A transition is described with the following line:
+
+@code{<source state> <destination state> <condition> | <output change>}
+
+@table @code
+@item <source state>
+
+  Traditionally a state is a single number. The current implementation
+  also allows any identifier to be used. If @code{<condition>} is true,
+  the state machine leaves @code{<source state>} and goes to a new
+  state. It is not required to describe the condition for NOT leaving
+  a state. The XBM parser automaticly calculates the this condition.
+
+@item <destination state>
+
+  The number or the name of the destination state. If @code{<condition>} is true,
+  the state machine will jump to this new state.
+
+@item <condition>
+
+  The @code{<condition>} is a collection of several input events. A 
+  @code{<condition>} is true if all of the inputs events are true.
+  
+  @table @code
+    @item <variable name>+
+    
+      The input signal @code{<variable name>} has signal change from 0 to 1.
+
+    @item <variable name>-
+
+      The input signal @code{<variable name>} has signal change from 1 to 0.
+
+      
+    @item [<variable name>+]
+
+      The input signal @code{<variable name>} has signal level of 1.
+
+    @item [<variable name>-]
+
+      The input signal @code{<variable name>} has signal level of 0.
+
+    @item <variable name>*
+
+      The input signal @code{<variable name>} might change once or might stay
+      at the same input level. 
+  @end table
+  
+  There are some additional restrictions for a @code{condition}. 
+  @enumerate
+    @item 
+      There must be at least one signal change event.
+  
+    @item 
+      No condition must be subset of another condition with the same
+       source state.
+       
+    @item 
+      A state that has been reached with a 0-1 (1-0) signal change event
+      must not be left with a 0-1 (1-0) signal change event again.
+    
+  @end enumerate
+
+@item |
+
+The symbol @code{|} separates the condition from the specification of
+the output behavior. The symbol @code{|} is required for compatiblity
+with other programs and is also required if the state machines contains
+@code{<state>} variables.
+
+@item <output change>
+
+  The @code{<output change>} is a set of instructions for the change
+  of a signal level for an output variable. An output variable
+  will not change if it
+  does not appear in @code{<output change>}.
+
+  @table @code
+    @item <variable name>+
+    
+      The output signal @code{<variable name>} will change to 1.
+
+    @item <variable name>-
+
+      The output signal @code{<variable name>} will change to 9.
+
+  @end table
+@end table
+
+The following example shows the interlock or mutual exclusion circuit.
+@example
+input r1 0
+input r2 0
+output a1 0
+output a2 0
+
+0 1 r1+       | a1+ 
+0 2 r2+       | a2+
+1 2 r1- [r2+] | a1- a2+
+2 1 r2- [r1+] | a2- a1+
+1 0 r1- [r2-] | a1-
+2 0 r2- [r1-] | a2-
+@end example
+This example has two input variables (@code{r1}, @code{r2}) and
+two output variables (@code{a1}, @code{a2}). The corresponding
+state machine will contain two input lines (@code{r1}, @code{r2}) and
+two output lines (@code{a1}, @code{a2}).
+
+The three states of the example are numbered from 0 to 2. Four of the
+six conditions contain checks for a certain signal level. 
+
+
+
+
+@section Output Files
+
+@table @strong
+@item EDIF (.edif)
+  The elecronic design interchange format (@url{http://www.edif.org/}).
+  This is the most used and known format to store a netlist.
+@item VHDL-netlist (.vhdl)
+  VHDL can be used to store a netlist. This format has been added
+  to support simulation of the result with a digital VHDL simulator.
+@item XNF (.xnf)
+  There is an experimental Xilinx netlist export filter. 
+  
+  (@url{ftp://ftp.xilinx.com/pub/documentation/xactstep6/00_index.htm})
+@end table
+
+@section Tools
+
+@subsection @code{dgc}
+
+@code{dgc} is the main tool of the package. It creates a netlist from the
+specified input file. 
+
+@subsection @code{simfsm}
+
+@code{simfsm} is a program to generate support files for fsm simulation. 
+Its main purpose is to generate stimuli data for finite state machines.
+At the moment, only VHDL is supported.
+
+@subsection @code{bms2kiss}
+
+@code{bms2kiss} converts a 
+BMS description into the corresponding KISS description.  
+
+@subsection @code{dgsop}
+
+The dgc package contains many functions for 2-level boolean minimization
+and manipulation.
+This tool gives access to some of these functions. The idea
+of @code{dgsop} is to provide a clone of the program ESPRESSO.
+
+@subsection @code{xbm2pla}
+
+Create the boolean functions for an asynchronous state
+machine. Uses a BMS or XBM file as input specification.
+
+@subsection @code{edif2vhdl}
+
+Converts an EDIF netlist to a VHDL netlist description.
+
+
+
+@chapter DGC and other programs
+
+@section ESPRESSO
+
+ESPRESSO is a tool for the minization of two level
+boolean expressions. ESPRESSO contains many excellent
+algorithms. 
+
+Download: @url{http://www-cad.eecs.berkeley.edu/Software/software.html}
+
+The program @code{dgsop} of the DGC project has been written
+as a replacement for ESPRESSO. The default behaviour of
+@code{dgsop} is the minimization of a PLA file
+(just like ESPRESSO).
+
+@code{dgsop} contains only an exact minimzation algorithm. There should
+be never a difference to the results of an exact algorithm of ESPRESSO.
+@code{dgsop} does not contain the signature algorithm and heuristic 
+approaches.
+
+@section EQNTOTT
+
+EQNTOTT is a conversion utility that creates a PLA file from a
+more readable description.
+
+Download: @url{http://www.nullstone.com/eqntott/eqntott.htm}
+
+The DGC project also provides a more readable file format: BEX.
+BEX is very similar to the input format of EQNTOTT. For the DGC
+project there is no additional conversion tool from BEX to PLA.
+All programs that accept PLA also read BEX files.
+
+Nevertheless if such a conversion is required, one can use
+@code{dgsop}. The default output of @code{dgsop} is a PLA file.
+An emulation of EQNTOTT would be: @code{dgsop -nop in.bex -op out.pla}.
+The opposite conversion is: @code{dgsop -nop in.pla -ob out.bex}.
+
+@section SIS
+
+SIS is a synthesis tool for PLA files and other formats.
+
+Download: @url{http://www-cad.eecs.berkeley.edu/Software/software.html}
+
+The program @code{dgc} is the synthesis compiler of the DGC project.
+@code{dgc} reads the input data from a file and produces a netlist.
+
+@section Minimalist and 3D
+
+Both programs create the boolean functions for an asynchronous state
+machine. The program @code{xbm2pla} handles the same input files as
+@code{minimalist} and @code{3D} and produces a similar output.
+
+
+@chapter Using DGC
+
+@section dgc
+
+@code{dgc} is the main program of the DGC project. @code{dgc} creates
+a netlist from an abstract description. @code{dgc} requires three files:
+@enumerate
+  @item Description of the digital system.
+  @item Description of the digital cells that should be used to create the
+    netlist (cell library).
+  @item The created file (netlist).
+@end enumerate
+The following example creates the netlist @code{example.edif} from
+the specification @code{example.bex} and the technology library 
+@code{default.genlib}:
+@example
+dgc example.bex -lib default.genlib -oe example.edif
+@end example
+
+@subsection Library options
+
+@code{dgc} requires a cell library. A cell library contains simple
+digital elements that can perform simple boolean operations. 
+A list of these elements must be imported into @code{dgc} with
+the commandline option @code{-lib}.
+
+@code{dgc} reduces complicated boolean expressions to simple boolean 
+operations. (This process is called synthesis.)
+Each element of a cell library has a name that usually has some relation
+to the function of the cell. For example an element that performs a
+logical and operation between two input lines might have the name @code{AN2},
+but the name might also be @code{AND2P1} or something else. @code{dgc}
+identifies the function of each element of a cell library and assigns
+a function name to each cell. The function name is composed of the name
+of the boolean operation and the number of inputs. Boolean operations are
+@code{and}, @code{nand}, @code{or} and @code{nor}. So the cells @code{AN2}
+and @code{AND2P1} both will have the same function name @code{and2}.
+
+Obviously the type of the elements influences the synthesis result 
+(the netlist). If the cell library does not contain an @code{and2}
+cell, the result will also not contain an element that performs a logical
+and operation between two input lines.
+In some cases it might be useful to remove elements from a cell library.
+@code{dgc} can do this with the option @code{-dcl "list of function names"}.
+The following example removes all cells with the function name @code{or2}
+and @code{or3}:
+@example
+dgc example.bex -lib default.genlib -dcl "or2 or3" 
+  -oe example.edif
+@end example
+
+
+
+@subsection Netlist options
+
+@code{dgc} can write several netlist formats. These are EDIF (@code{-oe}), 
+VHDL (@code{-ov}) and XNF (@code{-ox}).
+
+The EDIF netlist is a very powerful netlist format. Especially 
+EDIF requires a name for some parts of the information that is
+stored in the netlist. 
+@table @strong
+  @item name of the cell library
+    @code{dgc} reads basic building blocks from a cell library 
+    (e.g. @code{default.genlib}). The created netlist only contains
+    references to certain cells of this cell library. For further
+    processing of the netlist other tools need to know from which
+    library these cells had been choosen. The commandline option
+    @code{-clib <cell-lib>} assigns a used defined name to the
+    EDIF netlist.
+    The example 
+@example
+dgc example.bex -lib default.genlib -clib "CELL_LIB_0.13" 
+  -oe example.edif
+@end example
+    tells all postprocessing tools that the elements of @code{example.edif}
+    are part of the library @code{CELL_LIB_0.13}.
+    
+  @item name and library name of the created design
+    The example
+@example
+dgc example.bex -lib default.genlib 
+  -oe example.edif
+@end example
+    reads and processes @code{example.bex}. EDIF can contain the name
+    of the design so that other tools might also use the same name.
+    The following example tells all postprocessing tools to assume
+    the name @code{myexample} for the design that has been created
+    from the specification in @code{example.bex}.
+@example
+dgc example.bex -lib default.genlib -tcell myexample 
+  -oe example.edif
+@end example
+    EDIF not only requires a name for the design. It also
+    contains a library name for the design. Usually the name
+    and the library name of a design could be any valid string.
+    There is only one little exception: The library name for
+    the design (@code{-tlib}) must differ from the name of 
+    the cell library (@code{-clib}).
+    The following example assigns a name (@code{-tcell}) and 
+    a library name (@code{-tlib}) for the design:
+@example
+dgc example.bex -lib default.genlib 
+  -tcell myexample -tlib mylib
+  -oe example.edif
+@end example
+
+  @item name of the netlist view
+    The information stored in an EDIF netlist are grouped within
+    different views. @code{dgc} stores exactly one view and assigns
+    the name @code{symbol} which seems to be a good default name.
+    If a postprocessing tool requires a different name for the
+    view use the @code{-view} command.
+@end table
+
+Options for EDIF netlist (@code{-oe}): 
+The following commandline options can be used to alter
+the creation of an EDIF netlist:
+@table @code
+@item -clib
+  The name of the cell library. This name must match an existing
+  technology library.
+
+@item -tcell
+@itemx -tlib
+  A user defined name and library name of the design. The library name must
+  differ from the cell library.
+
+@item -view
+  Assign a name to the netlist view of the EDIF file format.
+
+@end table
+
+The VHDL netlist format also requires a reference to the cell library.
+A VHDL netlist will contain the commands
+@example
+LIBRARY <cell-lib>;
+USE <cell-lib>.components.all;
+@end example
+where @code{<cell-lib>} should be specified with @code{-vlib <cell-lib>}.
+VHDL also requires an entity and architecture 
+name for the design. The entity name can be assigned with @code{-tcell}.
+The name of the architecture is @code{netlist}.
+
+Options for VHDL netlist (@code{-ov}): 
+The following commandline options can be used to alter
+the creation of a VHDL netlist:
+
+@table @code
+@item -vlib
+  The name of the cell library. This name must match an existing
+  VHDL synthesis or simulation library.
+
+@item -tcell
+  A user defined name of the entity.
+
+@end table
+
+@subsection Logic minimization
+
+Several options affect the minimization of boolean functions.
+@table @code
+  @item -optn
+  @item -noptn
+    Enable or disable the net cache algorithm. This procedure ensures that
+    a cell is not used twice for the same input lines.
+
+  @item -optg
+  @item -noptg
+    Enable or disable optimization procedures on the generic netlist.
+    
+  @item -optt
+  @item -noptt
+    Enable or disable optimization procedures on the netlist after technology
+    mapping.
+    
+  @item -optl
+  @item -noptl
+    Enable or disable the extraction of common subexpressions.
+
+  @item -optm
+  @item -noptm
+    Enable or disable boolean minimization.
+    
+@end table
+
+@subsection Synchronous sequential circuits
+
+If the specification for @code{dgc} is a state machine then @code{dgc}
+creates a sequential circuit. The default operation 
+(no @code{-async} specified) creates synchronous state machines. This
+means that memory elements (data-flip-flops) are used to store the
+current state.
+
+A sequential circuits might have a reset input:
+@table @code
+  @item -nrs
+    Do not generate a reset input.
+
+  @item -rsl
+    Generate a low aktive reset. This will create an additional input line
+    with the name @code{clr}. A logical 0 will force the state machine to
+    stay in the reset state.
+    
+  @item -rsh
+    Generate a high aktive reset. This will create an additional input line
+    with the name @code{clr}. A logical 1 will force the state machine to
+    stay in the reset state.
+    
+@end table
+
+The description of a state machine can be redundant. The commandline
+option @code{-mis} applies a state minimization procedure.
+
+The states of a state machine must encoded to obtain boolean
+functions for the sequential circuit. There are several encoding
+techniques: @code{-encsimple}, @code{-encfi}, @code{-encica} and
+@code{-encicp}. Encodung only affect the size of the final circuit.
+
+All options according logic minimization also affect synchronous circuits.
+
+Conclusion:
+@table @code
+  @item -nrs
+    Do not generate a reset input.
+
+  @item -rsl
+    Generate a low aktive reset.
+    
+  @item -rsh
+    Generate a high aktive reset. 
+    
+  @item -mis
+  @itemx -nomis
+    Enable or disable state minimization.
+
+  @item -encsimple
+  @itemx -encfi
+  @itemx -encica
+  @itemx -encicp
+    Select encoding algorithm.
+
+@end table
+
+@subsection Asynchronous sequential circuits
+
+One of the key features of @code{dgc} is the construction of asynchronous
+circuits. The synthesis of asynchronous circuits is enabled with the 
+@code{-async} commandline option. This option also selects a different
+state encoding algorithm. Encoding options for synchronous state
+machines (@code{-encsimple}, etc.) are ignored.
+
+Reset behavior and state minimization are controlled in the same way
+as mentioned in the last section: Use @code{-nrs}, @code{-rsl} and
+@code{-rsh} to apply a suitable reset. Use @code{-mis} for a
+state minimization.
+
+Additionaly asynchronous state encoding is able to use the output
+values as state variables. This is selected with @code{-fbo}. 
+Using this option is recommended. It will usually reduce the area of the
+digital circuit.
+
+An asynchronous circuit uses delay elements instead of d-flip-flops.
+The delay depends on the boolean logic of the sequential circuit.
+The calculation and the insertion of the delay elements is suppressed
+by the commandline option @code{-nodlycor}. A valid asynchronous
+circuit requires this delay. Using @code{-nodlycor} will create an
+invalid state machine.
+
+Currently, @code{dgc} creates @emph{burst-mode} asynchronous 
+state machines if the
+input file is a BMS description. KISS files describe more general 
+state machines. Usually it is not possible to create asynchronous
+state machines from a KISS file, but @code{dgc} tries to do so.
+Indeed @code{dgc} does a relaxed checking of the burst-mode properties
+for KISS input files. The option @code{-bms} forces burst-mode properties
+in the case where the input specification is a KISS file.
+
+All options according logic minimization also affect asynchronous circuits.
+
+Conclusion:
+@table @code
+  @item -async
+    Generate asynchronous circuits. 
+
+  @item -nrs
+    Do not generate a reset input.
+
+  @item -rsl
+    Generate a low aktive reset.
+    
+  @item -rsh
+    Generate a high aktive reset. 
+    
+  @item -mis
+  @itemx -nomis
+    Enable or disable state minimization.
+
+  @item -fbo
+  @itemx -nofbo
+    Enable or disable the use of output values for state encoding.
+    
+  @item -dlycor
+  @itemx -nodlycor
+    Enable or disable the insertion of delay elements.
+    
+  @code{-bms}
+    Force burst-mode check.
+    
+@end table
+
+@subsection Messages
+
+@code{dgc} can generate many messages during the synthesis process. The
+generation of messages is controlled by a level variable that contains
+a threshold. Messages below the threshold are not generated. The
+default value for the threshold is 4. Different values can be assigned
+with @code{-ll <val>}. The value 7 suppresses all messages. The value
+0 shows all messages.
+
+@subsection Analysis
+
+@code{dgc} can analyse the capacitance for each transition of a
+sequential circuit. Results are written as normal messages if
+the option @code{-cap} is used. The capacitance is calculated from
+the information of the library file. So the unit is the same as in
+the library file (usually pF). 
+
+Capacitance analysis is ignored for pure boolean functions (e.g. BEX, 
+NEX and PLA files)
+
+@subsection Delay path construction
+
+@code{dgc} can calculate the delay of a digital network. A delay
+chain of inverter cell is generated with the @code{-dlypath} option
+that is larger than the calculated delay. The construction of
+the inverter chain is only possible for boolean functions.
+
+@section dgsop
+
+@code{dgsop} is the commandline interface for several algorithms that
+read boolean expressions. @code{dgsop} does not read state machines.
+@code{dgsop} accepts PLA, BEX and NEX files.
+
+A small online help is written to stdout if @code{dgsop} is called 
+without any arguments. Some important commands of @code{dgsop} include
+the following:
+
+@table @code
+  @item -op <outputfile>
+    Write the result as a PLA file.
+     
+  @item -ob <outputfile>
+    Write the result as a BEX file.
+
+  @item -nop <inputfile> 
+    Do nothing. This can be used together with @code{-op} and @code{-ob}
+    to convert file formats for boolean expressions.
+    
+  @item -min <inputfile> 
+    Generate a minimal two level representation of the boolean function in
+    @code{<inputfile>}.
+
+  @item -primes <inputfile> 
+    Generate all prime implicants of the boolean function in
+    @code{<inputfile>}.
+  
+@end table
+
+@bye
+
+
+
+
+
+
+
+
+
+
+

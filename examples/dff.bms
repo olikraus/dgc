@@ -1,0 +1,28 @@
+
+# data flip flop
+
+input d 0
+input clk 0
+output q 0
+
+
+; q = 0
+0 1 clk+ |
+1 0 clk- |
+0 2 d+   |
+2 0 d-   |
+1 3 d+   |
+3 1 d-   |
+3 2 clk- |
+2 5 clk+ | q+
+
+; q = 1
+4 5 clk+ |
+5 4 clk- |
+4 6 d-   |
+6 4 d+   |
+5 7 d-   |
+7 5 d+   |
+7 6 clk- |
+6 1 clk+ | q-
+

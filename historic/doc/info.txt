@@ -1,0 +1,60 @@
+
+compile farm:
+
+mkdir tmp; cd tmp; scp olikraus@dgc.sourceforge.net:/home/groups/d/dg/dgc/dgc-0.97.tar.gz .; gzip -d -c dgc-*.tar.gz | tar xvf -; cd dgc-*; ./configure --prefix=`pwd`; make check; make install
+
+gzip -d -c dgc-*.tar.gz | tar xvf -; cd dgc-*; ./configure --prefix=`pwd`; make check; make install
+
+
+upload to sourceforge:
+
+1.FTP to upload.sourceforge.net 
+2.Login as "anonymous" 
+3.Use your e-mail address as the password for this login 
+4.Set your client to binary mode ("bin" on command-line clients) 
+5.Change your current directory to /incoming ("cd /incoming") 
+6.Upload the desired files for the release ("put filename") 
+
+
+create docs:
+
+texi2html -nomenu -nonumber -nosec_nav -split chapter dgcprogs.texi
+
+Mac OSX:
+bash ./configure CONFIG_SHELL=/path/to/bash
+
+online-info:
+
+--------------
+
+O. Coudert. Two-level logic minimization: an overview. INTEGRATION, 
+the VLSI Jour., 17(2):97--140, 1994.
+
+O. Coudert. Two-Level Logic Minimization: An Overview. Integration. 
+Vol. 17, No. 2, pp. 97-140, October 1994
+
+http://www.synopsys.com/news/pubs/research/coudert/int94.ps.gz
+
+--------------
+Coudert, O. (1996). On solving binate covering problems. 
+In The Proceedings of the Design Automation Conference, pages 197--202.
+
+http://www.synopsys.com/news/pubs/research/coudert/iwls95.ps.gz
+
+
+O. Coudert, On Solving Binate Covering Problems, in Proc. of 33rd DAC, 
+Las Vegas, Nevada, June 1996 (DAC Best Paper award winner) 
+
+http://www.synopsys.com/news/pubs/research/dac96/coud_covering.ps.gz
+
+--------------
+
+BOOM minimizer
+
+http://service.felk.cvut.cz/vlsi/prj/BOOM/
+
+--------------
+
+dgc and cadence 2001
+
+./dgc -async ml3.bms -lib library_filename.lib 

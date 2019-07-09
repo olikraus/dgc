@@ -1,0 +1,16 @@
+;
+; A directed don't care up (a*) must not be followed by an rising edge (a+).
+; It is not always obvious whether a* is a ddc up or ddc down. In this 
+; example a* is a ddc down, because it is preceeded by an 'a+' so a enters
+; state 1 with a logic high. 'a*' must be a ddc down, because it might
+; either stay high or might go down to zero. In any case, one can not 
+; expect a rising edge 'a+' ...
+; 
+input a 0
+input b 0
+output q 0
+
+0 1 a+    | q+
+1 2 b+ a* | q-
+2 3 b- a+ |
+3 0 a-    |

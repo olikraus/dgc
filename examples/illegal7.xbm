@@ -1,0 +1,32 @@
+# 
+# State '0' has three outgoing arcs. Two of them 
+# contain the conditional 'd'. The third arc (0 1 clr-)
+# implicitly contains 'd*'. The problem is that this
+# construction allows 'd' to change while 'clr' changes.
+#
+# A 'd*' can be split into two transitions with '[d+]' 
+# and '[d-]'. A possible solution might look like this:
+# 
+# 0 1  clr- [d+]            |
+# 0 1  clr- [d-]            |
+# 1 0  clr+ [d+]            |
+# 1 0  clr+ [d-]            |
+# 0 2       [d+] clk+       | q+
+# 2 0       [d+] clk-       | q-
+# 2 0       [d-] clk-       | q-
+# 0 3       [d-] clk+       | 
+# 3 0       [d+] clk-       | 
+# 3 0       [d-] clk-       | 
+
+
+input d 0
+input clk 0
+input clr 1
+output q 0
+
+0 1  clr-                 |
+1 0  clr+                 |
+0 2       [d+] clk+       | q+
+2 0            clk-       | q-
+0 3       [d-] clk+       | 
+3 0            clk-       | 

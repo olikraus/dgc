@@ -1,0 +1,14 @@
+#
+# use digital gate compiler:
+#   dgc -async -nodlycor -nrs -noptl muller_c.bms
+#
+
+name muller_c
+input x 0
+input y 0
+output z 0
+
+0 1 x+ y+ | z+
+1 0 x- y- | z-
+
+

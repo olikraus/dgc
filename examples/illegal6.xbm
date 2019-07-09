@@ -1,0 +1,13 @@
+;
+; Each transition requires at least one edge triggered signal (see also
+; illegal5.xbm). All transitions of this example are illegal.
+;
+; Rule: A valid transition requires at least one edge triggered signal (...)
+;
+input a 0
+output q 0
+
+0 1 [a+] | q+
+1 2 [a-] | q-
+2 3 [a+] |
+3 0 [a-] |
