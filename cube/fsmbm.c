@@ -467,7 +467,7 @@ static int fsm_bm_self_to_different(fsm_type fsm, int edge, int use_in_code)
 {
   int src_node = fsm_GetEdgeSrcNode(fsm, edge);
   int self_edge = fsm_FindEdge(fsm, src_node, src_node);
-  dclist s_cl, d_cl;
+  dclist s_cl, d_cl; 
   int o, z;
   
   if ( self_edge < 0 )

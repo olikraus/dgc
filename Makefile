@@ -6,7 +6,8 @@
 # gnet: only dgd_opt.h
 # gnet & syl only required for dgc
 
-CFLAGS = -g -Wall -I. -Icube -Iutil -Iencoding -Ignet -Isyl
+CFLAGS = -g -Wall -ffunction-sections -fdata-sections -I. -Icube -Iutil -Iencoding -Ignet -Isyl
+LDFLAGS = -Wl,--gc-sections
 
 
 SRC = $(shell ls cube/*.c) $(shell ls util/*.c) $(shell ls encoding/*.c) $(shell ls gnet/*.c) $(shell ls syl/*.c) 

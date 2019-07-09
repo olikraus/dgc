@@ -988,7 +988,7 @@ static int is_bms_line(char *s)
     
     bms_state = 1;
 
-    
+    return 1;
   }
 
   t = fsm_bms_getid(&s);

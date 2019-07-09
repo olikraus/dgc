@@ -902,7 +902,7 @@ int hfp_Minimize(hfp_type hfp, int is_greedy, int is_literal)
   /*     if the req cube is not satisfied */
   /*        try to find an element from cl_fr which satisfies the req cube */
   /*        add this element  */
-  /*        error of no element from cl_fr was found *.
+  /*        error of no element from cl_fr was found */
   
   /*  
   if ( dclJoin(pi, cl_pr, cl_fr) == 0 )

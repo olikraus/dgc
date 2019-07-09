@@ -436,11 +436,13 @@ static dcexn dcexNewSymNode(dcex_type dcex, unsigned data)
   return n;
 }
 
+/*
 static dcexn dcexIdentifier(dcex_type dcex)
 {
   dcexReadIdentifier(dcex);
   return dcexNewStrNode(dcex, dcex->identifer);
 }
+*/
 
 static dcexn dcexAssignVariables(dcex_type dcex, b_sl_type sl)
 {
@@ -1384,7 +1386,7 @@ static char *dcex_filename_to_string(const char *filename)
     free(s);
     return NULL;
   }
-  if ( buf.st_size > (1<<(sizeof(size_t)*8-2)) )
+  if ( buf.st_size > ( ((size_t)1)<<(sizeof(size_t)*8-2)) )
   {
     free(s);
     return NULL;

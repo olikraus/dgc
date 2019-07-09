@@ -13,7 +13,6 @@
 ;
 
 input a 0
-input b 0
 input d 0
 output q 0
 0 1 d+     | q+

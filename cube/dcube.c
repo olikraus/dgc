@@ -577,7 +577,7 @@ char *dcOutToStr(pinfo *pi, dcube *c, char *post)
 char *dcInToStr(pinfo *pi, dcube *c, char *post)
 {
   static char s[1024*16];
-  int i, l;
+  int i;
   for( i = 0; i < pi->in_cnt; i++ )
     s[i] = "x01-"[dcGetIn(c, i)];
   strcpy(s+pi->in_cnt, post);
@@ -2200,7 +2200,7 @@ int dclReadCNFFP(pinfo *pi, dclist cl, FILE *fp)
   dcube *c = &(pi->tmp[3]);
   char *t;
   int is_init = 0;
-  int cnt = -1;
+  int cnt = -1; 
   int pos;
   
   pinfoSetOutCnt(pi, 1);
@@ -4560,7 +4560,7 @@ int dclPrimesCof(pinfo *pi, dclist cl, dcube *cof, int depth)
   dclist cl_left, cl_right;
   dcube *cof_left = &(pi->stack1[depth]);
   dcube *cof_right = &(pi->stack2[depth]);
-  int left_cnt, right_cnt;
+  int left_cnt, right_cnt; 
 
   if (depth >= PINFO_STACK_CUBES)
     return 0;
