@@ -1,0 +1,327 @@
+
+2003-11-15  Oliver Kraus <olikraus@yahoo.com>
+
+  * added "-dlysafety" switch
+
+
+2003-10-23  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed "-rso" bug 
+  * Fixed core dump with empty files (bug 828077)
+
+
+2003-10-19  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed DGD comment handling
+
+
+2003-10-16  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added -dlycell argument
+
+
+2003-10-14  Oliver Kraus <olikraus@yahoo.com>
+
+  * Synopsis lib import updated
+
+
+2003-10-09  Oliver Kraus <olikraus@yahoo.com>
+
+  * Released 0.97, switched to 0.98
+
+
+2003-04-06  Oliver Kraus <olikraus@yahoo.com>
+
+  * New: '-rso' flag for XBM (reset for output variables)
+  
+
+2003-03-05  Oliver Kraus <olikraus@yahoo.com>
+
+  * New: 'state' variable for XBM
+  * Documentation of XBM file format 
+
+
+2002-10-29  Oliver Kraus <olikraus@yahoo.com>
+  
+  * Fixed encoding problem with -sync for XBM files
+  * Use BCP procedures for synchronous XBM files
+  
+
+2002-10-15  Oliver Kraus <olikraus@yahoo.com>
+
+  * Removed asynchronous testbench generation from simfsm
+    (asynchronous testbench is now done with XBM2PLA)
+  * Fixed some XBM errors
+  * Support for insure
+  * Purify: No errors, Insure: Nearly no errors
+  * Released 0.96, switched to 0.97
+  
+
+2002-10-01  Oliver Kraus <olikraus@yahoo.com>
+
+  * Finished xbm testbench generator for VHDL
+  * Fixed serious bug in xbmfn.c
+
+
+2002-08-27  Oliver Kraus <olikraus@yahoo.com>
+
+  * A new minimizer for extended burst mode specification: xbm2pla
+  * fixed a bug in sc_io.[hc] (fpos_t)
+  
+
+2002-07-16  Oliver Kraus <olikraus@yahoo.com>
+
+  * Finished exact state minimization (-mis, old minization is
+    available with -oldmis)
+  * added some libiberty functions
+  
+
+2002-07-04  Oliver Kraus <olikraus@yahoo.com>
+
+  * Log the number of essential hazards
+  * Added POS to SOP conversion
+
+
+2002-06-20  Oliver Kraus <olikraus@yahoo.com>
+
+  * Bugfix: gnetlv.c, calculate value of __empty__ elements
+  * BMS file format: added reset keyword
+
+
+2002-06-16  Oliver Kraus <olikraus@yahoo.com>
+
+  * added ./cfg/depcomp to distribution files (why?)
+  * Released 0.95, switched to 0.96
+  
+
+2002-06-03  Oliver Kraus <olikraus@yahoo.com>
+
+  * New essential hazard detection and delay calculation procedure
+  * Fixed a bug in the door synthesis procedure
+  
+
+2002-05-22  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed bug if no reset state is available
+  
+
+2002-04-24  Oliver Kraus <olikraus@yahoo.com>
+
+  * Import of QFSM (qfsm.sourceforge.net) files
+
+
+2002-03-18  Oliver Kraus <olikraus@yahoo.com>
+
+  * '-primes' for bmsencode
+  * finished b_bcp.c, but not jet integrated... (except '-bcp' switch for dgsop)
+
+
+2002-03-13  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed big mistake in PrimesInv: It's much faster now.
+  
+
+2002-03-13  Oliver Kraus <olikraus@yahoo.com>
+
+  * Released 0.94, switched to 0.95
+
+
+2002-03-13  Oliver Kraus <olikraus@yahoo.com>
+
+  * Performance improvements for asynchronous state encoding
+  * A new tool for better observation of dichotomies: bmsencode
+  
+
+2002-03-05  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added a greedy state minimization algorithm
+  * Changed USTT encoding to use the state groups
+  * Added new flag for dgc and simfsm: '-mis'
+
+
+2002-02-11  Oliver Kraus <olikraus@yahoo.com>
+
+  * XBM support
+
+
+2002-02-08  Oliver Kraus <olikraus@yahoo.com>
+
+  * Released 0.93, switched to 0.94
+
+
+2002-02-07  Oliver Kraus <olikraus@yahoo.com>
+
+  * Bugfix: Missing fclose for EDIF files
+  * Delay correction with dgc_gui
+
+
+2002-02-05  Oliver Kraus <olikraus@yahoo.com>
+
+  * Update TESTS
+  * Fixed some warnings
+
+
+2002-01-29  Oliver Kraus <olikraus@yahoo.com>
+  
+  * Fixed bug for asynchronous delay calculation
+  * Added charge/dischage capacitance calculation (use '-cap')
+  
+
+2002-01-28  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added -fbo flag for asynchronous optimization
+  * Exact hazardfree minimization
+  * Rewrote VHDL export functions of 'simfsm' (fsmvhd.c)
+  * Rewrote technology optimization
+
+
+2002-01-14  Oliver Kraus <olikraus@yahoo.com>
+  
+  * Updated syntax for BMS files
+  * Fixed a bug with the flaglist management of the cube-list functions
+
+
+2002-01-12  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added some tests for dgc and dgsop, "make check" is useful now.
+  * NEWS update
+  * Released 0.92, switched to 0.93
+
+
+2002-01-11  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed a performance bug in the dcexReduceNot function:
+    Verification is now much faster
+  * Added 'delay' command for DGD format
+  * Faster netlist operations.
+
+
+2002-01-06  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added technology optimization (replace parallel inverters by a signle
+    one) ... no visible improvement at the moment :-(
+
+
+2002-01-05  Oliver Kraus <olikraus@yahoo.com>
+  
+  * Fixed a bug in the PLA detection function that causes KISS files to be
+    read as PLA files
+  * Added new export options for dgc (-ob, -op)
+  * Added command '-sub' for dgsop
+
+
+2001-12-29  Oliver Kraus <olikraus@yahoo.com>
+
+  * Purify warnings fixed
+  * NEWS, README update
+  * V0.92 released
+  
+
+2001-12-28  Oliver Kraus <olikraus@yahoo.com>
+
+  * Bug fix for verification procedure
+  * More readable log messages for technology database
+
+
+2001-12-27  Oliver Kraus <olikraus@yahoo.com>
+
+  * Flatten procedure finished
+  * Verification procedure added (gnetdcex.c)
+  * Bug fix in dcexReduceNot
+
+
+2001-12-05  Oliver Kraus <olikraus@yahoo.com>
+  
+  * Tobias' cover algorithm added
+  * added missing b_file commands
+  * added more examples, changed README
+  * Released version 0.90
+
+
+2001-12-05  Oliver Kraus <olikraus@yahoo.com>
+
+  * Semi-Automatic net-merge procedure for join-lists.
+  * replaced gnc_AddCellNetPort with gnc_AddCellNetJoin
+
+
+2001-12-04  Oliver Kraus <olikraus@yahoo.com>
+
+  * Started working on a script language (DGD)
+
+
+2001-12-02  Oliver Kraus <olikraus@yahoo.com>
+
+  * Added a new conversion function for the BEX.
+  * Added test case for BEX and PLA formats
+  * Added -eq operation for dgsop
+  
+
+2001-11-30  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed a rare bug in sylopt.c:gnc_DelNodeInverter()
+
+
+2001-11-29  Oliver Kraus <olikraus@yahoo.com>
+
+  * New input format: BEX
+  * Labels of KISS, PLA and BEX files are now used for synthesis
+  * Allow asynchronous statemachines without clock, added some more examples
+
+
+2001-11-27  Oliver Kraus <olikraus@yahoo.com>
+
+  * Some code cleanup
+  * Labels of BMS files are now used for synthesis
+
+
+2001-11-26  Oliver Kraus <olikraus@yahoo.com>
+
+  * Support for .ilb und .ob statements in PLA files
+
+
+2001-11-24  Oliver Kraus <olikraus@yahoo.com>
+
+  * optional creation of the GUI
+
+
+2001-11-23  Oliver Kraus <olikraus@yahoo.com>
+
+  * integration of Claudia's encoding library
+  * more readable commandline help (changed cmdline.c)
+  
+
+2001-11-15  Oliver Kraus <olikraus@yahoo.com>
+
+  * bugfix in fsmkiss.c: Allow don't cares in the output of KISS files
+  * added optional glitch detection code for the VHDL testbench
+
+
+2001-11-14  Oliver Kraus <olikraus@yahoo.com>
+
+  * bugfix in recu.c: avoid adding empty elements to the rectangle cover
+  * changed fsm_LogDCL and added more log statements for burst mode machines
+  * added an additional heuristic minimization procedure for burst 
+    mode control functions
+
+
+2001-11-13  Oliver Kraus <olikraus@yahoo.com>
+
+  * Finished adding copyleft statements
+  * --with-mwc switch
+  * Updated TODO and INSTALL
+  
+
+2001-11-09  Oliver Kraus <olikraus@yahoo.com>
+
+  * Fixed a bug in cube/recu.c
+  * Started to add copyleft statements
+  * changed cube/defs.h to cube/cubedefs.h 
+  * configure.in: Check for app/synthfsm changed to app/dgc.c
+
+
+2001-11-05  Oliver Kraus <olikraus@yahoo.com>
+
+  * Adding NEWS, AUTHORS
+  * Initial ChangeLog file
+  
+

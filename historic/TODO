@@ -1,0 +1,141 @@
+
+[1] Import filter for LEF
+      http://www.openeda.org/downloadprojects.html
+           
+?[2] Export filter for DEF
+      http://www.openeda.org/downloadprojects.html
+      
+      
+[3] Export Xilinx netlist
+    
+    2001-11-03  Oliver Kraus <olikraus@yahoo.com>
+      Partly done, Syntax is ok, but xilinx unix software
+      as problems with the DFF gate.
+
+    correct syntax seems to be:
+    SYM,rgb_reg<0>,FDC,SCHNM=FDC      SYM,hsyncb_reg,FDP,SCHNM=FDP
+    PIN,Q,O,n947,,                    PIN,Q,O,n940,,
+    PIN,D,I,rgb704<1>,,               PIN,D,I,hsyncb290,,
+    PIN,C,I,n802,,                    PIN,C,I,n802,,
+    PIN,CLR,I,n801,,                  PIN,PRE,I,n801,,
+    END                               END
+
+
+[4] Import filter for Synopsys Liberty format
+      http://www.synopsys.com/partners/tapin/lib_info.html
+
+
+[5] Define a new file format for more readable boolean expressions.
+    Write an import filter.
+      Done (--> BEX, NEX)
+
+[6] Read and store all the pin names from the source files.
+
+    2001-11-26   Oliver Kraus <olikraus@yahoo.com>
+      Done for PLA files.
+    2001-11-27   Oliver Kraus <olikraus@yahoo.com>
+      Done for BMS files.
+    
+[7] Define a script language for more complex designs.
+    This will require the following tasks:
+    - Requires [6].
+        --> done
+    - Import filter.
+        2001-12-03  Oliver Kraus <olikraus@yahoo.com>
+          Started... --> done
+    - unique Joinlist 
+        --> already done
+    - merge Joinlists
+        2001-12-05  Oliver Kraus <olikraus@yahoo.com>  done        
+    - Netlist flatten procedure.
+        2001-12-23  Oliver Kraus <olikraus@yahoo.com>  done
+        
+[8] VHDL Testbench Generator (cube/fsmvhd.c): Add asserts for output value!!!
+
+[9] Implement import filter for the AND/IF format
+    see http://edis.win.tue.nl/and-if/index.html
+
+[10] Add a better help for command-line utilities. Namely
+     dgc -ov option should appear as ' -ov <str>' or something similar.
+     
+     2001-11-23   Oliver Kraus <olikraus@yahoo.com>
+       Should be more readable now.
+     
+[11] Verlog Export
+
+[12] Check ComplementWithURP; Avoid splitting of output variable if only
+     '1's are present in all columns
+    
+[13] Check qfsm.sourceforge.net. Should be dgc compatible with qfsm?
+       
+       2002-04-18   Oliver Kraus <olikraus@yahoo.com>
+          looks very nice... 
+            Bugfix for FreeBSD is:
+            setenv LIBQT -lqt2
+            setenv MOC /usr/X11R6/bin/moc2
+            setenv LDFLAGS -L/usr/local/lib
+            ./configure --with-qt-includes="/usr/X11R6/include/qt2"
+                --with-extra-includes=/usr/local/include
+       2002-04-24   Oliver Kraus <olikraus@yahoo.com>
+            Import filter available
+                
+[14] Verification fails for asynchronous state machines
+     caused by [15], solved by using 'is_next_state_fn_inverted'.
+       2001-12-28   Oliver Kraus <olikraus@yahoo.com> fixed
+
+[15] Solve the "single door problem":
+     - Let the longest path calculation allow to use more than one gate
+       between the state ports.
+     - remove the 'is_next_state_fn_inverted' variable.
+       2002-01-18   Oliver Kraus <olikraus@yahoo.com>  
+          removed... put the information into the parent cell's
+          IsInverted port information
+
+[16] ./cube/nex.c:nex_Error --> should use gnc_Error
+
+[17] Technology optimization:
+     If there are two inverters connected to a net, one might
+     remove one of these inverters. In general this is valid for
+     all gates, that share the same inputs.
+       2001-01-06   Oliver Kraus <olikraus@yahoo.com> done (improvement?)
+     
+     
+[18] Rewrite Delay calculation for asynchronous machines
+     Questions: Why is gnc_get_all_input_cell_delay_min
+     and gnc_get_all_input_cell_delay_max not (nearly) constant?          
+
+[19] Rewrite VHDL output for state machines (fsmvhd.c)
+     Also consider [8]
+     Enable the code again in simfsm.c
+        2002-01-28  Oliver Kraus <olikraus@yahoo.com> done
+
+[20] Update TESTS
+        2002-02-05  Oliver Kraus <olikraus@yahoo.com> done
+
+[21] Simulation (-cap) of state machines without stable states generates error.
+     korrected several bugs, but still produces errors...  
+
+[22] Implement additional input/output formats
+        - OPAL
+        - OPEN-PLA (same as PLA?)
+        - EQN (similar to BEX!)
+        - JEDEC fuse map/programming file
+     Existing programs: opl2pla, pla2eqn, eqn2jed
+        
+[23] Support CUPL?
+          Tutorial: http://www.ee.upenn.edu/rca/software/CUPL/cuplindex.html
+                    http://www.ee.washington.edu/class/371/doc/cupl.html
+                    
+[24] Support APEL?
+
+[25] BUGFIX: 
+         ./simfsm -c clk -enclin -mis edge_rs_latch.bms -ov v.vhdl -ovtb t.vhdl
+         v.vhdl is incorrect!!! (output value is not calculated) 
+       2002-10-04 Oliver Kraus <olikraus@yahoo.com>  done:
+         simfsm is obsolete for burst mode machines
+     
+[26] 2002-05-27
+     check gnc_GetCellNodeMaxDelay(), gnc_GetCellNodeMinDelay() in gnetpoti.c 
+
+[27] 2002-10-04 ./data/mis_fail.xbm
+      Why does the state minimization fail?

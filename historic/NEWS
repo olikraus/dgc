@@ -1,0 +1,40 @@
+Version 0.96
+
+  * Exact state minimization (-mis)
+  * 'dgc' supports XBM (eXtended BMS)
+  * New tool: 'xbm2pla'
+  * VHDL Testbench generation for XBM/BMS now done by 'xbm2pla',
+    'simfsm' only handles synchronous machines.
+  * Several bugfixes
+  
+
+Version 0.95
+
+  * Import QFSM (qfsm.sourceforge.net) files with --with-qfsm
+  * New essential hazard detection and delay calculation procedure
+    (asynchronous state machines)
+
+
+Version 0.94
+  * State minimization with '-mis' command-line option
+  * Performance improved for asynchronous state encoding
+  
+
+Version 0.93
+  * Many improvements for asynchronous state machines
+  * 'make check' available
+  
+
+Version 0.92
+  * Bugfix: Import of KISS files
+  * Faster verification and netlist operations
+  
+
+Version 0.91
+  * New import format for hierarchical designs: DGD
+  * Verification for synthesis results added
+  * Several bug fixes
+
+
+Version 0.90
+  Initial Release.
