@@ -353,7 +353,6 @@ int pinfoSetInCnt(pinfo *pi, int in)
 }
 
 
-
 /*-- pinfoSetOutCnt ---------------------------------------------------------*/
 
 int pinfoSetOutCnt(pinfo *pi, int out)
@@ -386,6 +385,65 @@ int pinfoSetOutCnt(pinfo *pi, int out)
     pi->in_out_words_min = pi->out_words;
   return 1;
 }
+
+/*-- pinfoAddInLabel ---------------------------------------------------------*/
+/* add a in label, if it does not yet exist. return index to it */
+int pinfoAddInLabel(pinfo *pi, const char *s)
+{
+  int pos = -1;
+
+  if ( pi->in_sl == NULL )
+    pi->in_sl = b_sl_Open();
+  
+  /* check whether the label already exists */
+  pos = b_sl_Find(pi->in_sl, s);
+  if ( pos >= 0 )
+    return pos;		/* yes, it exists, return the position */
+  
+  /* define the new index for the label */
+  pos = pi->in_cnt;
+  
+  /* add signal to the pinfo structure */  
+  if ( pinfoSetInCnt(pi, pos + 1) ==  0 )
+    return -1;
+  
+  /* append the new label to the label list */
+  pos = b_sl_Add(pi->in_sl, s);
+  if ( pos < 0 )
+    return pinfoSetInCnt(pi, pos), -1;	/* alloc error */
+  
+  return pos;
+}
+
+/*-- pinfoAddOutLabel ---------------------------------------------------------*/
+/* add a out label, if it does not yet exist. return index to it */
+int pinfoAddOutLabel(pinfo *pi, const char *s)
+{
+  int pos = -1;
+
+  if ( pi->out_sl == NULL )
+    pi->out_sl = b_sl_Open();
+  
+  /* check whether the label already exists */
+  pos = b_sl_Find(pi->out_sl, s);
+  if ( pos >= 0 )
+    return pos;		/* yes, it exists, return the position */
+  
+  /* define the new index for the label */
+  pos = pi->out_cnt;
+  
+  /* add signal to the pinfo structure */  
+  if ( pinfoSetOutCnt(pi, pos + 1) ==  0 )
+    return -1;
+  
+  /* append the new label to the label list */
+  pos = b_sl_Add(pi->out_sl, s);
+  if ( pos < 0 )
+    return pinfoSetOutCnt(pi, pos), -1;	/* alloc error */
+  
+  return pos;
+}
+
 
 /*-- pinfoGetInLabelList ----------------------------------------------------*/
 
@@ -1192,6 +1250,160 @@ int pinfoGetDCubeCofactorForSplitting(pinfo *pi, dcube *r, dcube *rinv, dclist c
 
 /*---------------------------------------------------------------------------*/
 
+/* merge function cl_src into cl_dest, update pi_dest with all new signals of pi_src */
+/* returns 1 if successful, returns 0 for any error */
+int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
+{
+  int i, j, k, m;
+  int in_pos;
+  int out_pos;
+  int *in_map;
+  int val;
+  dclist src_on_cl, src_off_cl;
+
+
+  if ( dclInitVA(2, &src_on_cl, &src_off_cl) == 0 )
+    return 0;
+  
+  /* allocate a mapping list for the input signals of the source function */
+  /* this will return the signal position in the dest list, based on the index of the source list */
+  in_map = (int *)malloc(sizeof(int)*(pi_src->in_cnt));
+  if ( in_map == NULL )
+    return dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+
+  /* add the inputs from src to dest, consider existing signals and fill the in_map table */
+  for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
+  {
+    in_pos = pinfoAddInLabel( pi_dest, b_sl_GetVal(pi_src->in_sl, i) );
+    if ( in_pos < 0 )
+      return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+    in_map[i] = in_pos;
+  }  
+  
+  /* loop over the out variables of cl_src */
+  /* there are three cases: */
+  /* 1. Out signal exists as an input in dest: */
+  /*     The dest input is replaced by the current output function, no new output is created */
+  /* 2. Out signal does not exist as input or output in dest */
+  /*     New out signal is created in dest, the src function is added to the dest function */
+  /* 3. Out signal exists as dest out function: */
+  /* 	 This shouldn't happen from an electronics point of view (two functions driving the same line) */
+  /*    but it is assumed, that this is just a OR connection and treated like in 2. */
+  /*    maybe a warning should be generated */
+  /* The fourth case, where the out signal exists as input and output in dest is ignored and */
+  /* treated like in case 1. This case is an async circuit... hopefully the user knows what he does */
+
+  for( j = 0; j <  b_sl_GetCnt(pi_src->out_sl); j++ )
+  {
+    /* check, whether the output variable exists as an input variable in dest */
+    in_pos = b_sl_Find(pi_dest->in_sl, b_sl_GetVal(pi_src->out_sl, j));
+    if ( in_pos >= 0 )
+    {
+      /* case 1: output exists as input in the destination cube list */
+      
+      /* extract the on set out of the source function */
+      if ( dclCopyByOut(pi_src, src_on_cl, cl_src, j) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+	
+      /* then, take this on set and create the complement */
+      if ( dclCopy(pi_src, src_off_cl, src_on_cl) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      if ( dclComplement(pi_src, src_off_cl) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      
+      /* on set and its complement will be used to replace the input in the destination cube list */
+
+      /* loop over all cubes of the target function and replace the input variable */
+      dclClearFlags(cl_dest);
+      for( k = 0; k < dclCnt(cl_dest); k++ )
+      {
+	switch( dcGetIn( dclGet(cl_dest, k), in_pos ) )
+	{
+	  case 1:		/* input variable appears negative: use src_off_cl */
+	    /* mark the orignal cube for deletion */
+	    dclSetFlag(cl_dest, k);		/* the illegal block is marked and will be deleted below */	    
+	  
+	    /* loop over the source cubes */
+	    for( m = 0; m < dclCnt(src_off_cl); m++ )
+	    {	
+	      /* constuct the new cube for the target list */
+	      dcCopy( pi_dest, pi_dest->tmp+16, dclGet(cl_dest, k) );	/* get the current target cube, use tmp store place 16 */
+	      dcSetIn( pi_dest->tmp+16, in_pos, 3);		/* make the variable (which should be replaced) a don't care */
+	      for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
+	      {
+		val = dcGetIn(dclGet(src_off_cl, m), i);			/* get the in value of the source cube */
+		dcSetIn( pi_dest->tmp+16, in_map[i], val );		/* assign this value to the correct pos in the target cube */
+	      }	      
+	      /* add the new cube */
+	      if ( dclAdd(pi_dest, cl_dest, pi_dest->tmp+16) < 0 )
+		return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+	    }
+	    
+	    break;
+	  case 2:		/* input variable appears positive: use src_on_cl */
+	    /* mark the orignal cube for deletion */
+	    dclSetFlag(cl_dest, k);		/* the illegal block is marked and will be deleted below */	    
+	  
+	    /* loop over the source cubes */
+	    for( m = 0; m < dclCnt(src_on_cl); m++ )
+	    {	
+	      /* constuct the new cube for the target list */
+	      dcCopy( pi_dest, pi_dest->tmp+16, dclGet(cl_dest, k) );	/* get the current target cube, use tmp store place 16 */
+	      dcSetIn( pi_dest->tmp+16, in_pos, 3);		/* make the variable (which should be replaced) a don't care */
+	      for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
+	      {
+		val = dcGetIn(dclGet(src_on_cl, m), i);			/* get the in value of the source cube */
+		dcSetIn( pi_dest->tmp+16, in_map[i], val );		/* assign this value to the correct pos in the target cube */
+	      }	      
+	      /* add the new cube */
+	      if ( dclAdd(pi_dest, cl_dest, pi_dest->tmp+16) < 0 )
+		return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+	    }
+	    
+	    break;
+	  default:	/* input variable is don't care or illegal */
+	    
+	    break;
+	}	/* switch */
+      } /* loop over desintation cubes */
+      dclDeleteCubesWithFlag(pi_dest, cl_dest);	/* delete all cubes, which hab been replaced above */
+      
+    }
+    else
+    {
+      /* case 2. or 3. */
+      /* output signal does not exist in the destintion function as input */
+      
+      /* add the out label, return pos to existing or new label */
+      //out_pos = b_sl_Find(pi_dest->out_sl, b_sl_GetVal(pi_src->out_sl, j));
+      out_pos = pinfoAddOutLabel(pi_dest, b_sl_GetVal(pi_src->out_sl, j));
+
+      if ( out_pos < 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+
+      /* loop over the source cubes */
+      for( m = 0; m < dclCnt(src_on_cl); m++ )
+      {	
+	/* constuct the new cube for the target list */
+	dcCopy( pi_dest, pi_dest->tmp+16, pi_dest->tmp+0 );	/* derive the new cube from the tautology block  */
+	dcSetOut( pi_dest->tmp+16, out_pos, 1);		/* set the out variable */
+	for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
+	{
+	  val = dcGetIn(dclGet(src_on_cl, m), i);			/* get the in value of the source cube */
+	  dcSetIn( pi_dest->tmp+16, in_map[i], val );		/* assign this value to the correct pos in the target cube */
+	}
+	/* add the new cube */
+	if ( dclAdd(pi_dest, cl_dest, pi_dest->tmp+16) < 0 )
+	  return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      }
+      
+    }
+  }
+  return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 1;  
+}
+
+/*---------------------------------------------------------------------------*/
+
 int pinfoWrite(pinfo *pi, FILE *fp)
 {
   if ( pi == NULL )
@@ -1244,4 +1456,5 @@ int pinfoRead(pinfo **pi, FILE *fp)
 }
 
 
+/*---------------------------------------------------------------------------*/
 

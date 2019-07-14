@@ -69,7 +69,7 @@ struct _dcube_struct
 {
   c_int *in;
   c_int *out;
-  int n;
+  int n;	// used by some algorithms, usually to count the dc's or to mark something (-1)
 };
 typedef struct _dcube_struct dcube;
 

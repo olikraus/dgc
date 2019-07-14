@@ -1927,12 +1927,38 @@ int dclJoin(pinfo *pi, dclist dest, dclist src)
   return 1;
 }
 
+/* only join on set of the provided output, SCC might be required after this operation */
+int dclJoinByOut(pinfo *pi, dclist dest, dclist src, int out_pos)
+{
+  int i, cnt = dclCnt(src);
+  int idx;
+  for( i = 0; i < cnt; i++ )
+  {
+    if ( dcGetOut(dclGet(src, i), out_pos) )
+    {
+      idx = dclAdd(pi, dest, dclGet(src, i));
+      if ( idx < 0 )
+	return 0;
+      dcOutSetAll(pi, dclGet(dest, idx), 0);	/* clear all outputs */
+      dcSetOut(dclGet(dest, idx), out_pos, 1);	/* but keep the current one */
+    }
+  }
+  return 1;
+}
+
+
 /*-- dclCopy ----------------------------------------------------------------*/
 
 int dclCopy(pinfo *pi, dclist dest, dclist src)
 {
   dclClear(dest);
   return dclJoin(pi, dest, src);
+}
+
+int dclCopyByOut(pinfo *pi, dclist dest, dclist src, int out_pos)
+{
+  dclClear(dest);
+  return dclJoinByOut(pi, dest, src, out_pos);
 }
 
 /*-- dclClearFlags ----------------------------------------------------------*/

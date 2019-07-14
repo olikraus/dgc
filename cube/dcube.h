@@ -136,7 +136,9 @@ int   dcReadBin            (pinfo *pi, dcube *c, FILE *fp);
    int   dclAdd                (pinfo *pi, dclist cl, dcube *c);
    int   dclAddUnique          (pinfo *pi, dclist cl, dcube *c);
    int   dclJoin               (pinfo *pi, dclist dest, dclist src);
+   int dclJoinByOut(pinfo *pi, dclist dest, dclist src, int out_pos);
    int   dclCopy               (pinfo *pi, dclist dest, dclist src);
+   int dclCopyByOut(pinfo *pi, dclist dest, dclist src, int out_pos);
    int   dclClearFlags         (dclist cl);
 /* void  dclSetFlag            (dclist cl, int pos); */
 #define  dclSetFlag(cl,pos)            ((cl)->flag_list[(pos)] = 1)
@@ -250,10 +252,15 @@ int   dcReadBin            (pinfo *pi, dcube *c, FILE *fp);
    int   dclGetLiteralCnt      (pinfo *pi, dclist cl);
 
 
+/* pinfo.c */
 int pinfoCntDCList(pinfo *pi, dclist cl, dcube *cof);
 int pinfoGetInVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
 int pinfoGetOutVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
 int pinfoGetDCubeCofactorForSplitting(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
+
+int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src);
+
+
 
 /* dcubevhdl.c */
 

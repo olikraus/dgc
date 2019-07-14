@@ -97,7 +97,7 @@
 /*         dcl_is_output_compatible(), fsm_GetAllInEdgeOutput */
 /*         xbm_BuildStateStateTransfers (xbmfn.c) */
 /* tmp 15: gspq_IFD_minterm, xbm_find_reset_state, xbm_ess_check_ess_hazard */
-/* tmp 16: hfp_AddFromToTransition, xbm_ess_check_ess_hazard */
+/* tmp 16: hfp_AddFromToTransition, xbm_ess_check_ess_hazard, pinfoMerge*/
 /* tmp 17: hfp_AddFromToTransition, xbm_ess_check_ess_hazard */
 /* stack1: dclTautologyCof, dclPrimesCof */
 /* stack2: dclTautologyCof, dclPrimesCof */
@@ -212,6 +212,10 @@ int pinfoSetOutCnt(pinfo *pi, int out);
 
 #define pinfoGetInCnt(pi) ((pi)->in_cnt)
 #define pinfoGetOutCnt(pi) ((pi)->out_cnt)
+
+int pinfoAddInLabel(pinfo *pi, const char *s);
+int pinfoAddOutLabel(pinfo *pi, const char *s);
+
 
 b_sl_type pinfoGetInLabelList(pinfo *pi);
 b_sl_type pinfoGetOutLabelList(pinfo *pi);

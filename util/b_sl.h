@@ -48,6 +48,7 @@ int b_sl_Set(b_sl_type b_sl, int pos, const char *s);
 int b_sl_Union(b_sl_type dest, b_sl_type src);
 /* returns 0 (error) or 1 (ok) */
 int b_sl_Copy(b_sl_type dest, b_sl_type src);
+/* find a string, returns position or -1 (= not found) */
 int b_sl_Find(b_sl_type b_sl, const char *s);
 
 int b_sl_Write(b_sl_type b_sl, FILE *fp);

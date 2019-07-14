@@ -55,6 +55,7 @@ cl_entry_struct cl_list[] =
   { CL_TYP_STRING,  "fn-Calculate output values of the input cube <str>", fn_cube_str, 1024 },
   { CL_TYP_SET,     "info-Information about a file", &command, 4 },
   { CL_TYP_SET,     "dcexpand-Expand don't cares", &command, 5 },
+  { CL_TYP_SET,     "merge-Merge two files", &command, 6 },
   { CL_TYP_GROUP,   "Additional options", NULL, 0 },
   { CL_TYP_ON,      "greedy-use heuristic cover algorithm", &greedy,  0 },
   { CL_TYP_ON,      "literal-weight function is 'number of literals'", &is_literal,  0 },
@@ -70,7 +71,7 @@ int doall(void)
   pinfo pi;
   pinfo pi2;
   dclist cl_on, cl_dc, cl2_on, cl2_dc;
-  char *t;
+  const char *t;
 
   if ( pinfoInit(&pi) == 0 )
     return 0;
@@ -106,12 +107,15 @@ int doall(void)
         return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), pinfoDestroy(&pi2), 0;
       }
     }
-    if ( pi2.in_cnt != pi.in_cnt || pi2.out_cnt != pi.out_cnt)
+    
+    if ( command != 6 )
     {
-      printf("files must have the same numbers of inputs and outputs\n");
-      return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), pinfoDestroy(&pi2), 0;
+      if ( pi2.in_cnt != pi.in_cnt || pi2.out_cnt != pi.out_cnt)
+      {
+	printf("files must have the same numbers of inputs and outputs\n");
+	return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), pinfoDestroy(&pi2), 0;
+      }
     }
-    pinfoDestroy(&pi2);
   }
   
   
@@ -205,6 +209,14 @@ int doall(void)
         return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), 0;
       }
       dclDontCareExpand(&pi, cl_on);
+      break;
+    case 6:
+      if ( pinfoMerge(&pi, cl_on, &pi2, cl2_on) == 0 )
+      {
+	puts("Merge failed.");
+        dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc);
+        return 0;
+      }
       break;
     default:
       if ( fn_cube_str[0] != '\0' )
