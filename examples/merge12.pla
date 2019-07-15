@@ -1,0 +1,11 @@
+# merge12.pla
+# cmd: dgsop -merge merge11.pla merge12.pla
+# merge11.pla: f = a&b
+# merge12.pla: a = x&y
+# expected result f = x&y&b
+
+.o 1
+.i 2
+.ob a
+.ilb x y
+11 1

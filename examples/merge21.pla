@@ -1,0 +1,10 @@
+# merge21.pla
+# cmd: dgsop -merge merge21.pla merge22.pla
+# merge11.pla: f = !a & b
+# merge12.pla: a = x&y
+# expected result f = !(x & y) & b = (!x | !y)&b = !x&b | !y&b
+.o 1
+.i 2
+.ob f
+.ilb a b
+01 1

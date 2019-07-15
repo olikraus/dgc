@@ -2330,7 +2330,7 @@ int dclReadPLAFP(pinfo *pi, dclist cl_on, dclist cl_dc, FILE *fp)
     {
       /* nothing */
     }
-    else if ( s[0] == '\0' )
+    else if ( s[0] < ' ' )
     {
       /* nothing */
     }
