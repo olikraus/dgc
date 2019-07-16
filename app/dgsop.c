@@ -217,6 +217,10 @@ int doall(void)
         dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc);
         return 0;
       }
+      
+      pinfoCntDCList(&pi, cl_on, &(pi.tmp[0]));
+      printf("none DC in var count: %d\n", pinfoGetNoneDCInVarCnt(&pi));
+      
       break;
     default:
       if ( fn_cube_str[0] != '\0' )

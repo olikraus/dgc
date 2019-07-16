@@ -801,6 +801,12 @@ void pinfoCntDCube8(pinfo *pi, dcube *c1, dcube *c2, dcube *c3, dcube *c4, dcube
 
 /*-- pinfoCntDCList ---------------------------------------------------------*/
 
+/* 
+  Creates a distribution on the values for each variable over all cubes.
+  The distribution is stored in pi
+  Use pinfoGetZeroCnt, pinfoGetOneCnt and pinfoGetDCCnt after calling pinfoCntDCList
+  pinfoIsBinateInVar, pinfoGetMinDCCntVar
+*/
 int pinfoCntDCList(pinfo *pi, dclist cl, dcube *cof)
 {
   int j, i, cnt = dclCnt(cl);
@@ -853,21 +859,33 @@ int pinfoCntDCList(pinfo *pi, dclist cl, dcube *cof)
   return 1;
 }
 
+/*
+  requires a call to pinfoCntDCList()
+*/
 unsigned pinfoGetZeroCnt(pinfo *pi, int var)
 {
   return pi->split->cube_cnt - pi->split->in_half_bit_cnt[var*2+1];
 }
 
+/*
+  requires a call to pinfoCntDCList()
+*/
 unsigned pinfoGetOneCnt(pinfo *pi, int var)
 {
   return pi->split->cube_cnt - pi->split->in_half_bit_cnt[var*2];
 }
 
+/*
+  requires a call to pinfoCntDCList()
+*/
 unsigned pinfoGetDCCnt(pinfo *pi, int var)
 {
   return pi->split->in_half_bit_cnt[var*2+1] + pi->split->in_half_bit_cnt[var*2] - pi->split->cube_cnt;
 }
 
+/*
+  requires a call to pinfoCntDCList()
+*/
 unsigned pinfoGetOneZeroDiff(pinfo *pi, int var)
 {
   unsigned o, z;
@@ -878,11 +896,30 @@ unsigned pinfoGetOneZeroDiff(pinfo *pi, int var)
   return z-o;
 }
 
+/*
+  requires a call to pinfoCntDCList()
+*/
 int pinfoIsBinateInVar(pinfo *pi, int var)
 {
   if ( (pinfoGetOneCnt(pi, var) > 0) && (pinfoGetZeroCnt(pi, var) > 0) )
     return 1;
   return 0;
+}
+
+/*
+  returns the number of input vars which are not fully DC 
+  requires a call to pinfoCntDCList()
+*/
+int pinfoGetNoneDCInVarCnt(pinfo *pi)
+{
+  int i;
+  int none_dc_in_var_cnt = 0;
+  for( i = 0; i < pi->in_cnt; i++ )
+  {
+    if ( pinfoGetDCCnt(pi, i) != pi->split->cube_cnt )
+      none_dc_in_var_cnt++;
+  }
+  return none_dc_in_var_cnt;
 }
 
 int pinfoGetMinDCCntVar(pinfo *pi)
@@ -1181,7 +1218,7 @@ int pinfo_out_best_solution(pinfo *pi, dclist cl)
 
 int pinfoGetSplittingInVar(pinfo *pi)
 {
-  return pinfoGetMinDCCntVar(pi);
+  return pinfoGetMinDCCntVar(pi);	/* side effect, result is also stored in pi->split->in_best_var */
   /* var_diff = pinfoGetMinZeroOneDiffVar(pi); */
 }
 
@@ -1200,11 +1237,11 @@ int pinfoGetInVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcub
 {
   int var;
   if ( pinfoCntDCList(pi, cl, cof) == 0 )
-    return 0;
+    return 0;		/* memory issue */
   var = pinfoGetSplittingInVar(pi);
   if ( var >= 0 )
     return pinfo_in_var_to_dcube(pi, var, r, rinv, cof);
-  return 0;
+  return 0;	/* no split possible, function is unate (?) */
 }
 
 int pinfoGetOutVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof)
@@ -1218,13 +1255,18 @@ int pinfoGetOutVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcu
   return pinfo_out_opt_to_dcube(pi, best_pos, r, rinv);
 }
 
+/*
+pinfoGetDCubeCofactorForSplitting is called by
+  int dcGetCofactorForSplit(pinfo *pi, dcube *l, dcube *r, dclist cl, dcube *cof)
+
+*/
 int pinfoGetDCubeCofactorForSplitting(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof)
 {
   int in;
   int out;
   if ( pinfoCntDCList(pi, cl, cof) == 0 )
     return 0;
-  pinfoGetSplittingInVar(pi);
+  pinfoGetSplittingInVar(pi);	/* result is stored in pi->split->in_best_var */
   if ( pinfo_out_select(pi) == 0 )
     pi->split->out_best_pos = -1;
   else

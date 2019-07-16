@@ -254,6 +254,8 @@ int   dcReadBin            (pinfo *pi, dcube *c, FILE *fp);
 
 /* pinfo.c */
 int pinfoCntDCList(pinfo *pi, dclist cl, dcube *cof);
+int pinfoGetNoneDCInVarCnt(pinfo *pi);
+
 int pinfoGetInVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
 int pinfoGetOutVarDCubeCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
 int pinfoGetDCubeCofactorForSplitting(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
