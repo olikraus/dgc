@@ -138,6 +138,48 @@ int pinfoInit(pinfo *pi)
   return pinfoInitInOut(pi, 0, 0);
 }
 
+/*
+  init a pinfo structure with a different (source) pinfo structure
+  Only the selected output var is taken over
+  Additionally a cl_dest_ptr is init and updated
+  
+*/
+int pinfoInitFromOutVar(pinfo *pi_dest, dclist *cl_dest_ptr, pinfo *pi_src, dclist cl_src, int out_var)
+{
+  int i, cnt;
+  dclist cl_dest;
+  dcube *c;
+  
+  /* init cube list and pinfo */
+  
+  if ( dclInit(cl_dest_ptr) == 0 )
+    return 0;
+  cl_dest = *cl_dest_ptr;
+  if ( pinfoInitInOut(pi_dest, pi_src->in_cnt, 1) == 0 )
+    return dclDestroy(cl_dest), 0;
+  
+  /* assign in and out labels */
+  
+  if ( pinfoCopyInLabels(pi_dest, pinfoGetInLabelList(pi_src)) == 0 )
+    return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
+  if ( pinfoAddOutLabel(pi_dest, pinfoGetOutLabel(pi_src, out_var)) == 0 )
+    return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
+
+  /* copy the cobes and adjust the output */
+  
+  cnt = dclCnt(cl_src);
+  for( i = 0; i < cnt; i++ )
+  {
+    c =dclAddEmptyCube(pi_dest, cl_dest);
+    if ( c == NULL )
+      return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
+    dcCopyIn(pi_dest, c, dclGet(cl_src, i));
+    dcSetOut( c, 0, dcGetOut(dclGet(cl_src, i), out_var));
+  }
+  
+  return 1;
+}
+
 
 
 /*-- pinfoDestroySplit ------------------------------------------------------*/
@@ -1419,6 +1461,19 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
       /* add the out label, return pos to existing or new label */
       //out_pos = b_sl_Find(pi_dest->out_sl, b_sl_GetVal(pi_src->out_sl, j));
       out_pos = pinfoAddOutLabel(pi_dest, b_sl_GetVal(pi_src->out_sl, j));
+      
+      /* extract the on set out of the source function */
+      if ( dclCopyByOut(pi_src, src_on_cl, cl_src, j) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+	
+      /* then, take this on set and create the complement */
+      /*
+      if ( dclCopy(pi_src, src_off_cl, src_on_cl) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      if ( dclComplement(pi_src, src_off_cl) == 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      */
+      
 
       if ( out_pos < 0 )
 	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;

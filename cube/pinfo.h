@@ -197,6 +197,8 @@ int bitcount(c_int x);
 /* Init the problem information structure */
 int pinfoInit(pinfo *pi);
 int pinfoInitInOut(pinfo *pi, int in, int out);
+int pinfoInitFromOutVar(pinfo *pi_dest, dclist *cl_dest_ptr, pinfo *pi_src, dclist cl_src, int out_var);
+
 void pinfoDestroy(pinfo *pi);
 
 pinfo *pinfoOpen();
