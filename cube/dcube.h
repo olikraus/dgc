@@ -109,6 +109,9 @@ int   dcSharpIn            (pinfo *pi, dcube *r, dcube *a, dcube *b, int k);
 int   dcSharpOut           (pinfo *pi, dcube *r, dcube *a, dcube *b);
 int   dcD1SharpIn          (pinfo *pi, dcube *r, dcube *a, dcube *b, int k);
 int   dcD1SharpOut         (pinfo *pi, dcube *r, dcube *a, dcube *b);
+int dcGetBinateInVarCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
+int dcGetNoneDCInVarCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof);
+
 int   dcGetCofactorForSplit(pinfo *pi, dcube *l, dcube *r, dclist cl, dcube *cof);
 int   dcIsTautology        (pinfo *pi, dcube *c);
 void  dcOrIn               (pinfo *pi, dcube *r, dcube *a, dcube *b);

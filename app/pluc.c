@@ -2,6 +2,8 @@
 
   pluc.c
   
+  f(..., x, ...) = x && f(..., 1, ... ) || !x && f(..., 0, ... )
+  
 */
 
 #include <stdio.h>
@@ -64,6 +66,121 @@ int pluc_read(void)
     pinfoMerge(&pi, cl_on, &pi2, cl2_on);
     
   }
+  return 1;
+}
+
+/*==================================================*/
+
+int pluc_current_lut_number = 0;
+
+int pluc_get_lut_output_name(int pos)
+{
+  const char s[32];
+  sprintf("LUT%02", pos);
+  return s;
+}
+
+int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
+{
+  int i;
+  
+  dclist cl_left, cl_right;
+  dcube *cofactor_left = &(pi->stack1[depth]);
+  dcube *cofactor_right = &(pi->stack2[depth]);
+  
+  
+  if ( pi->in_cnt <= 5 )
+  {
+    puts("leaf:");
+    
+    dclShow(pi, cl);
+    return 1;
+  }
+  
+  for( i = 0; i < pi->in_cnt; i++ )
+  {
+    if ( dclIsDCInVar(pi, cl, i) == 0 )
+    {
+      break;
+    }
+  }
+
+  if ( i >= pi->in_cnt )
+    return 0;
+  
+  {
+    pinfo *pi2 = pinfoOpen();
+    dclist cl2;
+      
+
+    if ( pinfoAddOutLabel(pi2, pinfoGetOutLabel(pi, 0)) == 0 )
+      return pinfoClose(pi2), 0;
+    
+    if ( pinfoAddInLabel(pi2, pinfoGetInLabel(pi, i)) == 0 )
+      return pinfoClose(pi2), 0;
+    
+    if ( pinfoAddInLabel(pi2, pluc_get_lut_output_name(pluc_current_lut_number)) == 0 )
+      return pinfoClose(pi2), 0;
+
+    if ( pinfoAddInLabel(pi2, pluc_get_lut_output_name(pluc_current_lut_number+1)) == 0 )
+      return pinfoClose(pi2), 0;
+
+    if ( dclInit(&cl2) == 0 )
+      return pinfoClose(pi2), 0;
+      
+    
+    dcSetTautology(pi, pi2->tmp+17);
+    dcSetIn(pi2->tmp+17, 0, 2);
+    dcSetIn(pi2->tmp+17, 1, 2);
+    if ( dclAdd(pi2, cl2, pi2->tmp+17) == 0 )
+      return pinfoClose(pi2), dclDestroy(cl2), 0;
+    
+    dcSetTautology(pi, pi2->tmp+17);
+    dcSetIn(pi2->tmp+17, 0, 1);
+    dcSetIn(pi2->tmp+17, 2, 1);
+    if ( dclAdd(pi2, cl2, pi2->tmp+17) == 0 )
+      return pinfoClose(pi2), dclDestroy(cl2), 0;
+
+    puts("connector:");
+    dclShow(pi2, cl2);
+    pinfoClose(pi2);
+    dclDestroy(cl2);
+  }
+  
+  dcCopy(pi, cofactor_left, cof);
+  dcCopy(pi, cofactor_right, cof);
+  dcInSetAll(pi, cofactor_left, CUBE_IN_MASK_DC);
+  dcInSetAll(pi, cofactor_right, CUBE_IN_MASK_DC);
+  dcSetIn(cofactor_left, i, 2);
+  dcSetIn(cofactor_right, i, 1);
+  
+  
+  //int dcGetBinateInVarCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof)
+  if ( dcGetNoneDCInVarCofactor(pi, cofactor_left, cofactor_right, cl, cof) == 0 )
+    return 0;
+
+  if ( dclInitVA(2, &cl_left, &cl_right) == 0 )
+    return 0;
+
+  if ( dclSCCCofactor(pi, cl_left, cl, cofactor_left) == 0 )
+    return dclDestroyVA(2, cl_left, cl_right), 0;
+    
+  if ( dclSCCCofactor(pi, cl_right, cl, cofactor_right) == 0 )
+    return dclDestroyVA(2, cl_left, cl_right), 0;
+
+  if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
+    return dclDestroyVA(2, cl_left, cl_right), 0;
+  
+  if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
+    return dclDestroyVA(2, cl_left, cl_right), 0;
+  
+  return dclDestroyVA(2, cl_left, cl_right), 1;
+  
+}
+
+
+int pluc_map(void)
+{
   return 1;
 }
 
