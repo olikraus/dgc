@@ -17,7 +17,7 @@ pinfo pi, pi2;
 dclist cl_on, cl_dc, cl2_on, cl2_dc;
 
 /*==================================================*/
-void log(const char *format, ...)
+void pluc_log(const char *format, ...)
 {
   va_list va;
   va_start(va, format);
@@ -26,7 +26,7 @@ void log(const char *format, ...)
   va_end(va);
 }
 
-void err(const char *format, ...)
+void pluc_err(const char *format, ...)
 {
   va_list va;
   va_start(va, format);
@@ -39,7 +39,7 @@ void err(const char *format, ...)
 /*==================================================*/
 int pluc_init(void)
 {
-  log("Init");
+  pluc_log("Init");
   if ( pinfoInit(&pi) == 0 )
     return 0;
   if ( pinfoInit(&pi2) == 0 )
@@ -52,7 +52,7 @@ int pluc_init(void)
 int pluc_read(void)
 {
   int i;
-  log("Read (files: %d)", cl_file_cnt);
+  pluc_log("Read (files: %d)", cl_file_cnt);
   for( i = 0; i < cl_file_cnt; i++ )
   {
     pinfoDestroy(&pi2);
@@ -60,7 +60,7 @@ int pluc_read(void)
       return 0;
     if ( dclImport(&pi2, cl2_on, cl2_dc, cl_file_list[i]) == 0 )
     {
-      err("Import error with file %s", cl_file_list[i]);
+      pluc_err("Import pluc_error with file %s", cl_file_list[i]);
       return 0;
     }
     pinfoMerge(&pi, cl_on, &pi2, cl2_on);
@@ -73,25 +73,33 @@ int pluc_read(void)
 
 int pluc_current_lut_number = 0;
 
-int pluc_get_lut_output_name(int pos)
+const char *pluc_get_lut_output_name(int pos)
 {
-  const char s[32];
-  sprintf("LUT%02", pos);
+  static char s[32];
+  sprintf(s, "LUT%02d", pos);
   return s;
 }
 
 int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
 {
   int i;
+  int none_dc_cnt;
   
   dclist cl_left, cl_right;
   dcube *cofactor_left = &(pi->stack1[depth]);
   dcube *cofactor_right = &(pi->stack2[depth]);
   
   
-  if ( pi->in_cnt <= 5 )
+  none_dc_cnt = 0;
+  for( i = 0; i < pi->in_cnt; i++ )
   {
-    puts("leaf:");
+    if ( dclIsDCInVar(pi, cl, i) == 0 )
+      none_dc_cnt++;
+  }
+  
+  if ( none_dc_cnt <= 5 )
+  {
+    printf("leaf (depth=%d)\n", depth);
     
     dclShow(pi, cl);
     return 1;
@@ -109,42 +117,42 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     return 0;
   
   {
-    pinfo *pi2 = pinfoOpen();
-    dclist cl2;
+    pinfo *pi_connect = pinfoOpen();
+    dclist cl_connect;
       
 
-    if ( pinfoAddOutLabel(pi2, pinfoGetOutLabel(pi, 0)) == 0 )
-      return pinfoClose(pi2), 0;
+    if ( pinfoAddOutLabel(pi_connect, pinfoGetOutLabel(pi, 0)) < 0 )
+      return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi2, pinfoGetInLabel(pi, i)) == 0 )
-      return pinfoClose(pi2), 0;
+    if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
+      return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi2, pluc_get_lut_output_name(pluc_current_lut_number)) == 0 )
-      return pinfoClose(pi2), 0;
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number)) < 0 )
+      return pinfoClose(pi_connect), 0;
 
-    if ( pinfoAddInLabel(pi2, pluc_get_lut_output_name(pluc_current_lut_number+1)) == 0 )
-      return pinfoClose(pi2), 0;
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number+1)) < 0 )
+      return pinfoClose(pi_connect), 0;
 
-    if ( dclInit(&cl2) == 0 )
-      return pinfoClose(pi2), 0;
+    if ( dclInit(&cl_connect) == 0 )
+      return pinfoClose(pi_connect), 0;
       
     
-    dcSetTautology(pi, pi2->tmp+17);
-    dcSetIn(pi2->tmp+17, 0, 2);
-    dcSetIn(pi2->tmp+17, 1, 2);
-    if ( dclAdd(pi2, cl2, pi2->tmp+17) == 0 )
-      return pinfoClose(pi2), dclDestroy(cl2), 0;
+    dcSetTautology(pi, pi_connect->tmp+17);
+    dcSetIn(pi_connect->tmp+17, 0, 2);
+    dcSetIn(pi_connect->tmp+17, 1, 2);
+    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
+      return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
     
-    dcSetTautology(pi, pi2->tmp+17);
-    dcSetIn(pi2->tmp+17, 0, 1);
-    dcSetIn(pi2->tmp+17, 2, 1);
-    if ( dclAdd(pi2, cl2, pi2->tmp+17) == 0 )
-      return pinfoClose(pi2), dclDestroy(cl2), 0;
+    dcSetTautology(pi, pi_connect->tmp+17);
+    dcSetIn(pi_connect->tmp+17, 0, 1);
+    dcSetIn(pi_connect->tmp+17, 2, 1);
+    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
+      return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
 
-    puts("connector:");
-    dclShow(pi2, cl2);
-    pinfoClose(pi2);
-    dclDestroy(cl2);
+    printf("connector (depth=%d)\n", depth);
+    dclShow(pi_connect, cl_connect);
+    pinfoClose(pi_connect);
+    dclDestroy(cl_connect);
   }
   
   dcCopy(pi, cofactor_left, cof);
@@ -181,7 +189,11 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
 
 int pluc_map(void)
 {
-  return 1;
+  int result;
+  dcube *cof = pi.tmp+2;
+  dcSetTautology(&pi, cof);
+  result = pluc_map_cof(&pi, cl_on, cof, 0);
+  return result;
 }
 
 /*==================================================*/
@@ -191,8 +203,10 @@ int pluc(void)
     return 0;
   if ( pluc_read() == 0 )
     return 0;
-  dclShow(&pi, cl_on);
-  dclShow(&pi2, cl2_on);
+  if ( pluc_map() == 0 )
+    return 0;
+  //dclShow(&pi, cl_on);
+  //dclShow(&pi2, cl2_on);
   return 1;
 }
 
@@ -224,7 +238,7 @@ int main(int argc, char **argv)
 {
   if ( cl_Do(cl_list, argc, argv) == 0 )
   {
-    puts("cmdline error");
+    puts("cmdline pluc_error");
     exit(1);
   }
 
