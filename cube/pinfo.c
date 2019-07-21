@@ -597,6 +597,18 @@ const char *pinfoGetInLabel(pinfo *pi, int pos)
   return b_sl_GetVal(pi->in_sl, pos);
 }
 
+/*-- pinfoSetInLabel --------------------------------------------------------*/
+
+/* returns 0 in case of an error */
+int pinfoSetInLabel(pinfo *pi, int pos, const char *s)
+{
+  if ( pi->in_sl == NULL )
+    return 0;
+  if ( pos < 0 || pos >= b_sl_GetCnt(pi->in_sl) )
+    return 0;
+  return b_sl_Set(pi->in_sl, pos, s);
+}
+
 /*-- pinfoGetOutLabel -------------------------------------------------------*/
 
 const char *pinfoGetOutLabel(pinfo *pi, int pos)
@@ -606,6 +618,18 @@ const char *pinfoGetOutLabel(pinfo *pi, int pos)
   if ( pos < 0 || pos >= b_sl_GetCnt(pi->out_sl) )
     return NULL;
   return b_sl_GetVal(pi->out_sl, pos);
+}
+
+/*-- pinfoSetOutLabel --------------------------------------------------------*/
+
+/* returns 0 in case of an error */
+int pinfoSetOutLabel(pinfo *pi, int pos, const char *s)
+{
+  if ( pi->out_sl == NULL )
+    return 0;
+  if ( pos < 0 || pos >= b_sl_GetCnt(pi->out_sl) )
+    return 0;
+  return b_sl_Set(pi->out_sl, pos, s);
 }
 
 /*-- pinfoFindInLabelPos ----------------------------------------------------*/

@@ -43,7 +43,7 @@ void b_sl_Clear(b_sl_type b_sl);
 int b_sl_Add(b_sl_type b_sl, const char *s);
 /* add a substring of 's' starting at 'start' position with 'cnt' chars */
 int b_sl_AddRange(b_sl_type b_sl, const char *s, size_t start, size_t cnt);
-int b_sl_Set(b_sl_type b_sl, int pos, const char *s);
+int b_sl_Set(b_sl_type b_sl, int pos, const char *s); /* returns 0 (err) or 1 (ok) */
 /* returns 0 (error) or 1 (ok) */
 int b_sl_Union(b_sl_type dest, b_sl_type src);
 /* returns 0 (error) or 1 (ok) */

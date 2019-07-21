@@ -127,7 +127,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
       return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number)) < 0 )
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number+0)) < 0 )
       return pinfoClose(pi_connect), 0;
 
     if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number+1)) < 0 )
@@ -170,15 +170,19 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   if ( dclInitVA(2, &cl_left, &cl_right) == 0 )
     return 0;
 
+  
+  
   if ( dclSCCCofactor(pi, cl_left, cl, cofactor_left) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
     
   if ( dclSCCCofactor(pi, cl_right, cl, cofactor_right) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
 
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(pluc_current_lut_number+0));
   if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(pluc_current_lut_number+1));
   if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   

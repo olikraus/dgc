@@ -230,7 +230,9 @@ int pinfoCopyOutLabels(pinfo *pi, b_sl_type sl);
 int pinfoCopyLabels(pinfo *dest_pi, pinfo *src_pi);
 
 const char *pinfoGetInLabel(pinfo *pi, int pos);
+int pinfoSetInLabel(pinfo *pi, int pos, const char *s);
 const char *pinfoGetOutLabel(pinfo *pi, int pos);
+int pinfoSetOutLabel(pinfo *pi, int pos, const char *s);
 
 int pinfoFindInLabelPos(pinfo *pi, const char *s);
 int pinfoFindOutLabelPos(pinfo *pi, const char *s);
