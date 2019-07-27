@@ -86,10 +86,15 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   int none_dc_cnt;
   
   dclist cl_left, cl_right;
+  int new_left_lut;
+  int new_right_lut;
+  
+  /* get two cubes for the later split (if required) */
   dcube *cofactor_left = &(pi->stack1[depth]);
   dcube *cofactor_right = &(pi->stack2[depth]);
   
-  
+  /* calculate the number of variabels which are not fully DC */
+  /* Variables which are DC in all cubes must be ignored (infact they could be deleted) */
   none_dc_cnt = 0;
   for( i = 0; i < pi->in_cnt; i++ )
   {
@@ -97,6 +102,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       none_dc_cnt++;
   }
   
+  /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
     printf("leaf (depth=%d)\n", depth);
@@ -105,6 +111,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     return 1;
   }
   
+  /* find a suitable variable for splitting */
   for( i = 0; i < pi->in_cnt; i++ )
   {
     if ( dclIsDCInVar(pi, cl, i) == 0 )
@@ -116,10 +123,21 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   if ( i >= pi->in_cnt )
     return 0;
   
+  
+  /* for a full split we need two more luts: get the number for these luts */
+  new_left_lut = pluc_current_lut_number+0;
+  new_right_lut = pluc_current_lut_number+1;
+  
+  /* occupy the lut by advancing the current lut number */
+  pluc_current_lut_number += 2;
+  
+  
+  /* create a new boolean function which connects the later functions */
   {
     pinfo *pi_connect = pinfoOpen();
     dclist cl_connect;
       
+    
 
     if ( pinfoAddOutLabel(pi_connect, pinfoGetOutLabel(pi, 0)) < 0 )
       return pinfoClose(pi_connect), 0;
@@ -127,10 +145,10 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
       return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number+0)) < 0 )
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(new_left_lut)) < 0 )
       return pinfoClose(pi_connect), 0;
 
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(pluc_current_lut_number+1)) < 0 )
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(new_right_lut)) < 0 )
       return pinfoClose(pi_connect), 0;
 
     if ( dclInit(&cl_connect) == 0 )
@@ -155,6 +173,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     dclDestroy(cl_connect);
   }
   
+  /* construct the cofactor cubes: split happens against variable i (as derived above) */
   dcCopy(pi, cofactor_left, cof);
   dcCopy(pi, cofactor_right, cof);
   dcInSetAll(pi, cofactor_left, CUBE_IN_MASK_DC);
@@ -164,13 +183,11 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   
   
   //int dcGetBinateInVarCofactor(pinfo *pi, dcube *r, dcube *rinv, dclist cl, dcube *cof)
-  if ( dcGetNoneDCInVarCofactor(pi, cofactor_left, cofactor_right, cl, cof) == 0 )
-    return 0;
+  //if ( dcGetNoneDCInVarCofactor(pi, cofactor_left, cofactor_right, cl, cof) == 0 )
+  //  return 0;
 
   if ( dclInitVA(2, &cl_left, &cl_right) == 0 )
     return 0;
-
-  
   
   if ( dclSCCCofactor(pi, cl_left, cl, cofactor_left) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
@@ -178,11 +195,11 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   if ( dclSCCCofactor(pi, cl_right, cl, cofactor_right) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
 
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(pluc_current_lut_number+0));
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(new_left_lut));
   if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(pluc_current_lut_number+1));
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(new_right_lut));
   if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   
