@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "dcube.h"
 #include "cmdline.h"
 
@@ -48,6 +49,9 @@ struct _pluc_wire_struct
   const char *to;
   pluc_regop_t regop[PLUC_WIRE_REGOP_CNT];
   int8_t is_used;
+  int8_t is_lut_in;
+  int8_t is_lut_out;
+  
 };
 typedef struct _pluc_wire_struct pluc_wire_t;
 
@@ -57,6 +61,7 @@ typedef struct _pluc_wire_struct pluc_wire_t;
 /* global variables */
 char c_file_name[1024] = "";
 int cmdline_listmap = 0;
+char cmdline_output[1024] = "";
 
 pinfo pi, pi2;
 dclist cl_on, cl_dc, cl2_on, cl2_dc;
@@ -80,28 +85,28 @@ dclist cl_on, cl_dc, cl2_on, cl2_dc;
 #define PLUC_WIRE_PLU_OUT(out) PLUC_WIRE_STRING( PLUOUT ## out)
 
 #define PLUC_CONNECT_PLU_IN_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_PLU_IN(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_PLU_IN(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_PLU_OUT_GPIO(out, gpio, o) \
- { PLUC_WIRE_PLU_OUT(out), #gpio, {{7, 1, 0x180, 3<<(out*2+12), o<<(out*2+12)}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_PLU_OUT(out), #gpio, {{7, 1, 0x180, 3<<(out*2+12), o<<(out*2+12)}, {0, 0, 0, 0, 0}}, 0, 0, 0 } ,
 
 #define PLUC_CONNECT_LUT_OUT_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_LUT_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_LUT_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_LUT_OUT_PLU_OUT(lutout, pluout) \
- { PLUC_WIRE_LUT_OUT(lutout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, lutout}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_LUT_OUT(lutout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, lutout}, {0, 0, 0, 0, 0}}, 0, 0, 1 } ,
 
 #define PLUC_CONNECT_FF_OUT_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_FF_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_FF_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_FF_OUT_PLU_OUT(ffout, pluout) \
- { PLUC_WIRE_FF_OUT(ffout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, ffout+26}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_FF_OUT(ffout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, ffout+26}, {0, 0, 0, 0, 0}}, 0, 0, 0 } ,
 
 #define LPC804_CONNECT_GPIO_PLU_IN(gpio, in, o) \
- { #gpio, PLUC_WIRE_PLU_IN(in), {{7, 1, 0x180, 3<<(in*2), o<<(in*2)}, {0, 0, 0, 0, 0}}, 0 } ,
+ { #gpio, PLUC_WIRE_PLU_IN(in), {{7, 1, 0x180, 3<<(in*2), o<<(in*2)}, {0, 0, 0, 0, 0}}, 0, 0, 0 } ,
 
 #define LPC804_CONNECT_LUT_OUT_FF_OUT(lut, ff) \
- { PLUC_WIRE_LUT_OUT(lut), PLUC_WIRE_FF_OUT(ff), {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, 0 } ,
+ { PLUC_WIRE_LUT_OUT(lut), PLUC_WIRE_FF_OUT(ff), {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, 0, 0, 1	 } ,
 
 
 #define PLUC_CONNECT_NONE() \
@@ -483,6 +488,64 @@ int pluc_map(void)
 }
 
 /*==================================================*/
+int pluc_find_to(const char *s)
+{
+    int i = 0;
+    while( lpc804_wire_table[i].from != NULL )
+    {
+      if ( strcmp(lpc804_wire_table[i].to, s) == 0 )
+	return i;
+      i++;
+    }
+    return -1;
+}
+
+int pluc_find_from(const char *s)
+{
+    int i = 0;
+    while( lpc804_wire_table[i].from != NULL )
+    {
+      if ( strcmp(lpc804_wire_table[i].from, s) == 0 )
+	return i;
+      i++;
+    }
+    return -1;
+}
+
+#define PLUC_ROUTE_CHAIN_MAX 16
+int pluc_route_output(const char *s)
+{
+  int chain[PLUC_ROUTE_CHAIN_MAX];
+  int i;
+
+  pluc_log("route to LUT from %s", s);
+  
+  i = 0;
+  while( i < PLUC_ROUTE_CHAIN_MAX )
+  {
+    chain[i] = pluc_find_to(s);
+    if ( chain[i] < 0 )
+    {
+      /* not found */
+      pluc_err("'%s' unknown", s);
+      return 0;
+    }
+    pluc_log("from %s to %s", lpc804_wire_table[chain[i]].from, lpc804_wire_table[chain[i]].to);
+    
+    if ( lpc804_wire_table[chain[i]].is_lut_out != 0 )
+    {
+      i++;
+      break;
+    }
+    
+    s = lpc804_wire_table[chain[i]].from;
+    i++;
+  }
+  
+  return 1;
+}
+
+/*==================================================*/
 int pluc(void)
 {
   if ( pluc_init() == 0 )
@@ -506,6 +569,7 @@ cl_entry_struct cl_list[] =
 {
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
+  { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
   CL_ENTRY_LAST
 };
 
@@ -533,12 +597,18 @@ int main(int argc, char **argv)
     int i = 0;
     while( lpc804_wire_table[i].from != NULL )
     {
-      printf("%05d: %-10s -> %-10s\n", i, lpc804_wire_table[i].from, lpc804_wire_table[i].to );
+      printf("%05d: %c/%c %-10s -> %-10s\n", i, lpc804_wire_table[i].is_lut_in?'i':'-', lpc804_wire_table[i].is_lut_out?'o':'-', lpc804_wire_table[i].from, lpc804_wire_table[i].to );
       i++;
     }
     exit(0);
   }
-
+  
+  if ( cmdline_output[0] != '\0' )
+  {
+    pluc_route_output(cmdline_output);
+    exit(1);
+  }
+  
   if ( cl_file_cnt < 1 )
   {
     help(argv[0]);
