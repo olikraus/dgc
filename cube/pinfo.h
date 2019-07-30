@@ -237,6 +237,8 @@ int pinfoSetOutLabel(pinfo *pi, int pos, const char *s);
 int pinfoFindInLabelPos(pinfo *pi, const char *s);
 int pinfoFindOutLabelPos(pinfo *pi, const char *s);
 
+int pinfoCopy(pinfo *dest, pinfo *src);
+
 int pinfoInitProgress(pinfo *pi);
 void pinfoDestroyProgress(pinfo *pi);
 

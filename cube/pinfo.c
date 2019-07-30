@@ -650,6 +650,20 @@ int pinfoFindOutLabelPos(pinfo *pi, const char *s)
   return b_sl_Find(pi->out_sl, s);
 }
 
+/*-- pinfoCopy --------------------------------------------------------*/
+/* copy the problem info to the destiion info */
+int pinfoCopy(pinfo *dest, pinfo *src)
+{
+  if ( pinfoSetInCnt(dest, pinfoGetInCnt(src)) == 0 )
+    return 0;
+  if ( pinfoSetOutCnt(dest, pinfoGetOutCnt(src)) == 0 )
+    return 0;
+  if ( pinfoCopyLabels(dest, src) == 0 )
+    return 0;
+  return 1;
+}
+
+
 /*-- pinfoProcessOut --------------------------------------------------------*/
 void pinfoProcessOut(pinfo *pi)
 {
