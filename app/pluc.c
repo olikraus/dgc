@@ -426,7 +426,7 @@ const char *pluc_get_lut_output_internal_name(int pos)
 const char *pluc_get_lut_output_name(int pos)
 {
   static char s[32];
-  sprintf(s, "LUT%02d", pos);
+  sprintf(s, "LUT%d", pos);
   return s;
 }
 
@@ -648,6 +648,8 @@ int pluc_find_from(const char *s)
     return -1;
 }
 
+
+
 /*
   calculate a route from the provided input or output node 
   result is stored in
@@ -709,6 +711,41 @@ int pluc_calc_route_chain(const char *s, int is_in_to_out)
   return 1;
 }
 
+int _pluc_calc_from_to_sub(const char *from, const char *to)
+{
+  int i = 0;
+
+  //pluc_log("from_to: %s-->%s", from, to);
+  while( lpc804_wire_table[i].from != NULL )
+  {
+    if ( lpc804_wire_table[i].is_used == 0 )
+    {
+      if ( strcmp(lpc804_wire_table[i].from, from) == 0 )
+      {
+	if ( strcmp(lpc804_wire_table[i].to, to) == 0 )
+	{
+	  /* found leaf node */
+	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	  return 1;
+	}
+	if ( _pluc_calc_from_to_sub(lpc804_wire_table[i].to, to) != 0 )
+	{
+	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	  return 1;
+	}
+      }
+    }
+    i++;
+  }
+  return 0;
+}
+
+int pluc_calc_from_to(const char *from, const char *to)
+{
+  pluc_route_chain_cnt = 0;
+  return _pluc_calc_from_to_sub(from, to);
+}
+
 /*
   All required luts are stored in pluc_lut_list.
   However luts are not yet placed and connected.
@@ -720,7 +757,7 @@ int pluc_route_external_connected_luts(void)
 {
   int i;
   const char *s;
-  pluc_log("Route: Map&route for LUTs with external signals", pluc_lut_cnt);
+  pluc_log("Route: LUTs with external signals", pluc_lut_cnt);
   for( i = 0; i < pluc_lut_cnt; i++ )
   {
     if ( pluc_lut_list[i].is_placed == 0 )
@@ -731,28 +768,36 @@ int pluc_route_external_connected_luts(void)
 	if ( s[0] != '.' )
 	{
 	  
-	  /* TODO: We must search from LUT i to output pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) */
-	  pluc_log("Route: Search from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
-	  
-	  
-	  //if ( pluc_calc_route_chain(s, 0) == 0 )	// WRONG function call
-	  //{
-	  //  pluc_err("No route found from '%s' to any LUT", s);
-	  //  return 0;
-	  //}
-	  //pluc_mark_route_chain_wire_list();		/* route found.. mark it! */
-	  
-	  //if ( pluc_lut_list[i].user_out_name != NULL )
-	  //  free(pluc_lut_list[i].user_out_name);
-	  //pluc_lut_list[i].user_out_name = strdup(s);
-	  //if ( pluc_lut_list[i].user_out_name == NULL )
-	  //  return pluc_err("memory error"), 0;
-	  
-	  
-	  //pluc_log("Output '%s' connected to LUT%d", pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0), i);
-	  
-	  
-	  pluc_lut_list[i].is_placed = 1;			/* mark the LUT as done */
+	  if ( pluc_calc_from_to(pluc_get_lut_output_name(i), pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) ) != 0 )
+	  {
+	    
+	    pluc_log("Route: Path found from LUT%d to %s ", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
+	    /* TODO: We must search from LUT i to output pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) */
+	    
+	    
+	    //if ( pluc_calc_route_chain(s, 0) == 0 )	// WRONG function call
+	    //{
+	    //  pluc_err("No route found from '%s' to any LUT", s);
+	    //  return 0;
+	    //}
+	    pluc_mark_route_chain_wire_list();		/* route found.. mark it! */
+	    
+	    //if ( pluc_lut_list[i].user_out_name != NULL )
+	    //  free(pluc_lut_list[i].user_out_name);
+	    //pluc_lut_list[i].user_out_name = strdup(s);
+	    //if ( pluc_lut_list[i].user_out_name == NULL )
+	    //  return pluc_err("memory error"), 0;
+	    
+	    
+	    //pluc_log("Output '%s' connected to LUT%d", pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0), i);
+	    
+	    
+	    pluc_lut_list[i].is_placed = 1;			/* mark the LUT as done */
+	  }
+	  else
+	  {
+	    pluc_err("Route: No route found from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
+	  }
 	} // external connection
       } // s != NULL
     } // is_placed == 0
