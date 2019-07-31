@@ -456,6 +456,17 @@ int pinfoAddInLabel(pinfo *pi, const char *s)
   
   return pos;
 }
+/*-- pinfoDeleteInLabel ---------------------------------------------------------*/
+void pinfoDeleteInLabel(pinfo *pi, int pos)
+{
+  if ( pi->in_sl == NULL )
+    return;		/* do nothing */
+  if ( pi->in_cnt <= pos )
+    return;		/* do nothing */
+  b_sl_Del(pi->in_sl, pos);
+  pinfoSetInCnt(pi, pi->in_cnt - 1);
+}
+
 
 /*-- pinfoAddOutLabel ---------------------------------------------------------*/
 /* add a out label, if it does not yet exist. return index to it */

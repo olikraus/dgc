@@ -216,6 +216,8 @@ int pinfoSetOutCnt(pinfo *pi, int out);
 #define pinfoGetOutCnt(pi) ((pi)->out_cnt)
 
 int pinfoAddInLabel(pinfo *pi, const char *s);
+void pinfoDeleteInLabel(pinfo *pi, int pos);
+
 int pinfoAddOutLabel(pinfo *pi, const char *s);
 
 

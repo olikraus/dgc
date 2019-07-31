@@ -53,6 +53,7 @@ void  dcCopyOutToIn        (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo 
 void  dcCopyOutToInRange   (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo *pi_src, dcube *src, int src_offset, int src_cnt);
 void  dcCopyOutToOut       (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo *pi_src, dcube *src);
 void  dcCopyOutToOutRange  (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo *pi_src, dcube *src, int src_offset, int src_cnt);
+void dcDeleteIn		(pinfo *pi, dcube *c, int pos);
 void  dcOutSetAll          (pinfo *pi, dcube *c, c_int v);
 void  dcAllClear           (pinfo *pi, dcube *c);
 void  dcSetTautology       (pinfo *pi, dcube *c);
@@ -174,6 +175,7 @@ int   dcReadBin            (pinfo *pi, dcube *c, FILE *fp);
    int   dclWritePLA           (pinfo *pi, dclist cl, const char *filename);
    void  dclShow               (pinfo *pi, dclist cl);
    void  dclSetOutAll          (pinfo *pi, dclist cl, c_int v);
+   void dclDeleteIn(pinfo *pi, dclist cl, int pos);
    int   dclDontCareExpand     (pinfo *pi, dclist cl);
    int   dclIsSingleSubSet     (pinfo *pi, dclist cl, dcube *c);
    void  dclGetOutput          (pinfo *pi, dclist cl, dcube *c);

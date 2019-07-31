@@ -2,7 +2,7 @@
 .o 1
 .i 6
 .ob PIO0_10
-.ilb PIO0_13 b c d e f
+.ilb PIO0_13 PIO0_17 PIO0_18 PIO0_19 PIO0_20 PIO0_21
 111110 1
 100-11 1
 0101-0 1

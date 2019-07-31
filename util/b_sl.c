@@ -64,6 +64,14 @@ int b_sl_Add(b_sl_type b_sl, const char *s)
   return b_pl_Add(b_sl, t);
 }
 
+void b_sl_Del(b_sl_type b_sl, int pos)
+{
+    if ( b_sl_GetVal(b_sl, pos) != NULL )
+      free(b_sl_GetVal(b_sl, pos));
+    
+  b_pl_DelByPos(b_sl, pos);  
+}
+
 int b_sl_AddRange(b_sl_type b_sl, const char *s, size_t start, size_t cnt)
 {
   char *t;

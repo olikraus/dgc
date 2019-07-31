@@ -188,6 +188,26 @@ void dcCopyOutToOutRange(pinfo *pi_dest, dcube *dest, int dest_offset,
   }
 }
 
+/*-- dcDeleteIn -----------------------------------------------------------*/
+/* remove a variable at 'pos', shift all other variables one position to the left, fill last var with DC */
+void dcDeleteIn(pinfo *pi, dcube *c, int pos)
+{
+  int i;
+  int s;
+  if ( pi->in_cnt > 0 )
+  {
+    for( i = pos+1; i < pi->in_cnt; i++ )
+    {
+      s = dcGetIn(c, i);
+      //printf("%d:%d ", i, s);
+      dcSetIn(c, i-1, s);
+    }
+    //printf("\n");
+    dcSetIn(c, pi->in_cnt-1, 3);  
+  }
+}
+
+
 /*-- dcOutSetAll ------------------------------------------------------------*/
 void dcOutSetAll(pinfo *pi, dcube *c, c_int v)
 {
@@ -2691,6 +2711,15 @@ void dclSetOutAll(pinfo *pi, dclist cl, c_int v)
   int i, cnt = dclCnt(cl);
   for( i = 0; i < cnt; i++ )
     dcOutSetAll(pi, dclGet(cl, i), v);
+}
+
+/*-- dclDeleteIn -----------------------------------------------------------*/
+
+void dclDeleteIn(pinfo *pi, dclist cl, int pos)
+{
+  int i, cnt = dclCnt(cl);
+  for( i = 0; i < cnt; i++ )
+    dcDeleteIn(pi, dclGet(cl, i), pos);
 }
 
 /*-- dclDontCareExpand ------------------------------------------------------*/
