@@ -760,10 +760,13 @@ int pluc_route_external_connected_luts(void)
   return 1;
 }
 
-int pluc_place_and_route(void)
+int pluc_route(void)
 {
+  /* connect LUT output signal (none internal) */
   if ( pluc_route_external_connected_luts() == 0 )
     return 0;
+  /* rename the internal signal name to normal LUT names */
+  
   return 1;
 }
 
@@ -776,7 +779,7 @@ int pluc(void)
     return 0;
   if ( pluc_map() == 0 )
     return 0;
-  if ( pluc_place_and_route() == 0 )
+  if ( pluc_route() == 0 )
     return 0;
   //dclShow(&pi, cl_on);
   //dclShow(&pi2, cl2_on);
