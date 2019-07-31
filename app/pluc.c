@@ -773,11 +773,13 @@ int _pluc_calc_from_to_sub(const char *from, const char *to)
 	{
 	  /* found leaf node */
 	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	  pluc_log("from_to: %s-->%s", from, to);
 	  return 1;
 	}
 	if ( _pluc_calc_from_to_sub(lpc804_wire_table[i].to, to) != 0 )
 	{
 	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	  pluc_log("from_to: %s-->%s", from, to);
 	  return 1;
 	}
       }
@@ -860,20 +862,53 @@ int pluc_route_external_connected_luts(void)
   return 1;
 }
 
-/* connect inputs of all LUTS */
-/* TODO */
-int pluc_route_all_input_all_luts(void)
+/*
+  works, but...:
+  TODO:
+  This procedure must be more clever. 
+  
+  PIO0_12    -> PLUINPUT4 --> LUT5
+  But later, ther should be another connection
+  PIO0_12    -> PLUINPUT4 --> LUT6
+  which will fail, because PIO0_12    -> PLUINPUT4 is already used.
+  However, this is wrong, because the source has not changed and PIO0_12    -> PLUINPUT4 can be reused.
+
+  Eigentlich müsste es doch so sein: Wenn es mehrere übergänge zu dem selben Ziel gibt, müssten diese unkenntlich gemacht werden
+  also alles andere ausser 
+    PIO0_12    -> PLUINPUT4
+  das ebenfalls nach PLUINPUT4 geht, müsste deaktiviert werden (darf nicht mehr verwendet werden)
+*/
+
+int pluc_route_lut_input(void)
 {
   int i, j;
+  char in[32];
+  pinfo *pi;
+
+  pluc_log("Route: LUT input route");
+  
   for( i = 0; i < pluc_lut_cnt; i++ )
   {
-    for( j = 0; j < pinfoGetInCnt(&(pluc_lut_list[i].pi)); j++ )
+    pi = &(pluc_lut_list[i].pi);
+    for( j = 0; j < pinfoGetInCnt(pi); j++ )
     {
+      sprintf(in, "%s_INP%d", pluc_get_lut_output_name(i), j);
+      if ( pluc_calc_from_to(pinfoGetInLabel(pi, j), in ) != 0 )
+      {
+	  pluc_log("Route: LUT input path found from %s to %s ", pinfoGetInLabel(pi, j), in);
+	  pluc_mark_route_chain_wire_list();		/* route found.. mark it! */
+      }
+      else
+      {
+	pluc_err("Route: No LUT input path found from %s to %s", pinfoGetInLabel(pi, j), in);
+	return 0;
+      }
       
     }
   }
   return 1;
 }
+
 
 int pluc_route(void)
 {
@@ -886,7 +921,7 @@ int pluc_route(void)
   if ( pluc_route_external_connected_luts() == 0 )
     return 0;
 
-  if ( pluc_route_all_input_all_luts() == 0 )
+  if ( pluc_route_lut_input() == 0 )
     return 0;
   
   for( int i = 0; i < pluc_lut_cnt; i++ )
