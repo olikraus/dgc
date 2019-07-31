@@ -14,6 +14,16 @@
   
 */
 
+/*
+
+  TODO:
+    The LUT can be placed anywere (except for the first four LUTs which could drive the FFs)
+    There is probably no need to assign an internal name, LUTs can be allocated directly to the target LUT, only one problem:
+    There must be two lists (or at least two counter) to count the FFs and the real LUTs
+
+*/
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -23,8 +33,11 @@
 /*==================================================*/
 struct _pluc_lut_struct
 {
-  pinfo pi;
+  pinfo pi;			/* the label of the output will be the name of expected signal */
   dclist dcl;
+  /* obsolete, the LUT name can always be derived from the position in the list */
+  // char *user_out_name;	/* the original output signal name, given by the user */
+  int is_placed;			/* whether this LUT is placed */
 };
 typedef struct _pluc_lut_struct pluc_lut_t;
 
@@ -93,8 +106,12 @@ dclist cl_on, cl_dc, cl2_on, cl2_dc;
     cut down the boolean problem and map the problem into the available luts
 */
 #define PLUC_LUT_MAX 128
+#define PLUC_FF_MAX 4
 pluc_lut_t pluc_lut_list[PLUC_LUT_MAX];
-int pluc_lut_cnt = 0;
+int pluc_lut_cnt = PLUC_FF_MAX;
+int pluc_ff_cnt = 0;
+
+int pluc_internal_cnt = 0;
 
 
 /*==================================================*/
@@ -359,8 +376,11 @@ int pluc_init(void)
       return 0;
     if ( dclInit( &(pluc_lut_list[i].dcl) ) == 0 )
       return 0;
+    //pluc_lut_list[i].user_out_name = NULL;
+    pluc_lut_list[i].is_placed = 0;
   }
-  pluc_lut_cnt = 0;
+  
+  pluc_lut_cnt = PLUC_FF_MAX;		// we could assign 0, if there is no state machine
     
   return 1;
 }
@@ -394,10 +414,19 @@ int pluc_read(void)
 /*=== map ===*/
 /*==================================================*/
 
+/* return an internal unique name for the LUT, the internal name starts with a "." */
+const char *pluc_get_lut_output_internal_name(int pos)
+{
+  static char s[32];
+  sprintf(s, ".LUT%02d", pos);
+  return s;
+}
+
+/* return the LUT name, as used in the wire table...  */
 const char *pluc_get_lut_output_name(int pos)
 {
   static char s[32];
-  sprintf(s, "_LUT%02d", pos);
+  sprintf(s, "LUT%02d", pos);
   return s;
 }
 
@@ -411,8 +440,13 @@ int pluc_add_lut(pinfo *pi, dclist cl)
   if ( pinfoCopy( &(pluc_lut_list[pluc_lut_cnt].pi), pi) == 0 )
     return 0;
 
-   if ( dclCopy(pi, pluc_lut_list[pluc_lut_cnt].dcl, cl) == 0 )
-     return 0;
+  if ( dclCopy(pi, pluc_lut_list[pluc_lut_cnt].dcl, cl) == 0 )
+    return 0;
+
+  //if ( pluc_lut_list[pluc_lut_cnt].user_out_name != NULL )
+  //  free(pluc_lut_list[pluc_lut_cnt].user_out_name);
+  //pluc_lut_list[pluc_lut_cnt].user_out_name = NULL;
+  pluc_lut_list[pluc_lut_cnt].is_placed = 0;
    
    pluc_lut_cnt++;
    
@@ -444,8 +478,12 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
-    printf("leaf (depth=%d)\n", depth);
     
+    if ( pluc_add_lut(pi, cl) == 0 )
+      return 0;
+    pluc_log("Map: Leaf fn (in-cnt %d) added to LUT table (index %d), output '%s'", none_dc_cnt, pluc_lut_cnt-1, pinfoGetOutLabel(pi, 0));
+    
+    printf("leaf (depth=%d)\n", depth);
     dclShow(pi, cl);
     return 1;
   }
@@ -464,11 +502,9 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   
   
   /* for a full split we need two more luts: get the number for these luts */
-  new_left_lut = pluc_lut_cnt+0;
-  new_right_lut = pluc_lut_cnt+1;
-  
-  /* occupy the lut by advancing the current lut number */
-  pluc_lut_cnt += 2;
+  new_left_lut = pluc_internal_cnt+0;
+  new_right_lut = pluc_internal_cnt+1;
+  pluc_internal_cnt += 2;
   
   
   /* create a new boolean function which connects the later functions */
@@ -484,10 +520,10 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
       return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(new_left_lut)) < 0 )
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_left_lut)) < 0 )
       return pinfoClose(pi_connect), 0;
 
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_name(new_right_lut)) < 0 )
+    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_right_lut)) < 0 )
       return pinfoClose(pi_connect), 0;
 
     if ( dclInit(&cl_connect) == 0 )
@@ -538,18 +574,12 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   if ( dclSCCCofactor(pi, cl_right, cl, cofactor_right) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
 
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(new_left_lut));
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_left_lut));
   if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_name(new_right_lut));
+  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_right_lut));
   if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
-
-  if ( pluc_add_lut(pi, cl_left) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
-
-  if ( pluc_add_lut(pi, cl_right) == 0 )
     return dclDestroyVA(2, cl_left, cl_right), 0;
   
   return dclDestroyVA(2, cl_left, cl_right), 1;
@@ -565,9 +595,9 @@ int pluc_map(void)
   dcSetTautology(&pi, cof);
   result = pluc_map_cof(&pi, cl_on, cof, 0);
   
-  
   for( i = 0; i < pluc_lut_cnt; i++ )
   {
+    printf("pluc_lut_list entry %d:\n", i);
     dclShow(&(pluc_lut_list[i].pi), pluc_lut_list[i].dcl);    
   }
   
@@ -576,11 +606,23 @@ int pluc_map(void)
 }
 
 /*==================================================*/
+/*=== route ===*/
+/*==================================================*/
+
+
 
 /* array, which stores the current route chain, generated by  "pluc_calc_route_chain" */
 #define PLUC_ROUTE_CHAIN_MAX 16
 int pluc_route_chain_list[PLUC_ROUTE_CHAIN_MAX];		/* points into wire table */
 int pluc_route_chain_cnt = 0;
+
+/* mark the current list in the wire table */
+void pluc_mark_route_chain_wire_list(void)
+{
+  int i;
+  for( i = 0; i < pluc_route_chain_cnt; i++ )
+    lpc804_wire_table[pluc_route_chain_list[i]].is_used = 1;
+}
 
 int pluc_find_to(const char *s)
 {
@@ -635,7 +677,7 @@ int pluc_calc_route_chain(const char *s, int is_in_to_out)
       pluc_err("'%s' unknown", s);
       return 0;
     }
-    pluc_log("from %s to %s", lpc804_wire_table[pluc_route_chain_list[i]].from, lpc804_wire_table[pluc_route_chain_list[i]].to);
+    pluc_log("Route: From %s to %s", lpc804_wire_table[pluc_route_chain_list[i]].from, lpc804_wire_table[pluc_route_chain_list[i]].to);
 
     if ( is_in_to_out ) 
     {
@@ -667,6 +709,64 @@ int pluc_calc_route_chain(const char *s, int is_in_to_out)
   return 1;
 }
 
+/*
+  All required luts are stored in pluc_lut_list.
+  However luts are not yet placed and connected.
+  This function will place the external luts (those which are 
+  connected to a none-internal signal) in the correct lut.
+  Internl signals names start with a ".".
+*/
+int pluc_route_external_connected_luts(void)
+{
+  int i;
+  const char *s;
+  pluc_log("Route: Map&route for LUTs with external signals", pluc_lut_cnt);
+  for( i = 0; i < pluc_lut_cnt; i++ )
+  {
+    if ( pluc_lut_list[i].is_placed == 0 )
+    {
+      s = pinfoGetOutLabel( &(pluc_lut_list[i].pi), 0);
+      if ( s != NULL )
+      {
+	if ( s[0] != '.' )
+	{
+	  
+	  /* TODO: We must search from LUT i to output pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) */
+	  pluc_log("Route: Search from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
+	  
+	  
+	  //if ( pluc_calc_route_chain(s, 0) == 0 )	// WRONG function call
+	  //{
+	  //  pluc_err("No route found from '%s' to any LUT", s);
+	  //  return 0;
+	  //}
+	  //pluc_mark_route_chain_wire_list();		/* route found.. mark it! */
+	  
+	  //if ( pluc_lut_list[i].user_out_name != NULL )
+	  //  free(pluc_lut_list[i].user_out_name);
+	  //pluc_lut_list[i].user_out_name = strdup(s);
+	  //if ( pluc_lut_list[i].user_out_name == NULL )
+	  //  return pluc_err("memory error"), 0;
+	  
+	  
+	  //pluc_log("Output '%s' connected to LUT%d", pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0), i);
+	  
+	  
+	  pluc_lut_list[i].is_placed = 1;			/* mark the LUT as done */
+	} // external connection
+      } // s != NULL
+    } // is_placed == 0
+  }
+  return 1;
+}
+
+int pluc_place_and_route(void)
+{
+  if ( pluc_route_external_connected_luts() == 0 )
+    return 0;
+  return 1;
+}
+
 /*==================================================*/
 int pluc(void)
 {
@@ -675,6 +775,8 @@ int pluc(void)
   if ( pluc_read() == 0 )
     return 0;
   if ( pluc_map() == 0 )
+    return 0;
+  if ( pluc_place_and_route() == 0 )
     return 0;
   //dclShow(&pi, cl_on);
   //dclShow(&pi2, cl2_on);
