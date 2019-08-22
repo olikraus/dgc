@@ -978,6 +978,33 @@ int pluc_route(void)
 }
 
 /*==================================================*/
+/* code generation */
+uint32_t pluc_get_lut_value(int lut)
+{
+  dcube *input;
+  uint32_t result;
+  int i;
+  
+  input = &(pluc_lut_list[lut].pi.tmp[10]);
+  
+  dcInSetAll(&(pluc_lut_list[lut].pi), input, CUBE_IN_MASK_ZERO);
+  
+  result = 0;
+  for( i = 0; i < 32; i++ )
+  {
+    dclResult(&(pluc_lut_list[lut].pi), input, pluc_lut_list[lut].dcl);
+    if ( dcGetOut(input, 0) != 0 )
+      result |= 1;
+    
+    result <<= 1;
+    dcInc(&(pluc_lut_list[lut].pi), input);
+  }
+  return result;
+}
+
+
+
+/*==================================================*/
 int pluc(void)
 {
   if ( pluc_init() == 0 )
