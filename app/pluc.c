@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 #include "dcube.h"
 #include "cmdline.h"
 
@@ -63,13 +64,14 @@ struct _pluc_regop_struct
   int8_t base;			/* not really a base address,but a index for the base address, 0: PLU, 1: SWM  */
 					/* 0: 0x40028000 PLU   */
 					/* 1: 0x4000c000 SWD  */
-  uint32_t idx;			/* index for base */
+  uint32_t idx;			/* index for base (byte offset)*/
   uint32_t and_value;	/* and value */
   uint32_t or_value;		/* or value */
   
 };
 
 typedef struct _pluc_regop_struct pluc_regop_t;
+
 
 #define PLUC_WIRE_REGOP_CNT 2
 struct _pluc_wire_struct
@@ -84,7 +86,6 @@ struct _pluc_wire_struct
   
 };
 typedef struct _pluc_wire_struct pluc_wire_t;
-
 
 
 /*==================================================*/
@@ -431,6 +432,7 @@ const char *pluc_get_lut_output_name(int pos)
   return s;
 }
 
+/* remove a don't care column, which may appear during the map algorithm */
 void pluc_remove_dc(pinfo *pi, dclist cl)
 {
   int i;
@@ -455,6 +457,8 @@ void pluc_remove_dc(pinfo *pi, dclist cl)
 /*
   add a (reduced) problem into the lut list and increase the number of
   luts in the list.
+
+  All don't cares are removed before the LUT is added (pluc_remove_dc). 
 */
 int pluc_add_lut(pinfo *pi, dclist cl)
 {
@@ -617,7 +621,6 @@ int pluc_map(void)
   dcube *cof = pi.tmp+2;
   dcSetTautology(&pi, cof);
   result = pluc_map_cof(&pi, cl_on, cof, 0);
-  
   
   return result;
 }
@@ -979,18 +982,103 @@ int pluc_route(void)
 
 /*==================================================*/
 /* code generation */
-uint32_t pluc_get_lut_value(int lut)
+/*
+
+  Return the configuration value for the LUT.
+  All unused colums had been previously removed (see pluc_remove_dc), so that the LUT has five or lesser inputs.
+
+
+*/
+
+void pluc_out(const char *s)
+{
+  printf("%s", s);
+}
+
+void pluc_out_regop(pluc_regop_t *regop)
+{
+  static char s[1024];
+  uint32_t adr = 0L;
+  switch(regop->base)
+  {
+    case 0:	adr = 0x40028000;	break;
+    case 1:	adr = 0x4000c000;	break;
+    default: assert(0); break;
+  }
+  adr += regop->idx;
+  
+  assert((regop->idx & 3) == 0);
+  
+  switch(regop->op)
+  {
+    case 0:
+      s[0] = '\0';
+      break;
+    case 1:
+      sprintf(s, "*(uint32_t *)0x%08x = 0x%08xUL;", adr, regop->or_value);
+      break;
+    case 2:
+      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL;", adr, regop->and_value);
+      break;
+    case 3:
+      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL;", adr, regop->and_value);
+      break;
+    case 4:
+      sprintf(s, "*(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->or_value);
+      break;
+    case 5:
+      sprintf(s, "*(uint32_t *)0x%08x |= ~0x%08xUL;", adr, regop->or_value);
+      break;
+    case 6:
+      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->and_value, adr, regop->or_value);
+      break;
+    case 7:
+      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->and_value, adr, regop->or_value);
+      break;
+  }
+  
+  pluc_out("\t");
+  pluc_out(s);
+  pluc_out("\n");
+}
+
+void pluc_out_wire(pluc_wire_t *wire)
+{
+  static char s[1024];
+  int i;
+  sprintf("\t/* %s --> %s */\n", wire->from, wire->to);
+  pluc_out(s);
+  for( i = 0; i < PLUC_WIRE_REGOP_CNT; i++ )
+  {
+    pluc_out_regop(wire->regop+i);
+  }
+}
+
+
+
+uint32_t pluc_get_lut_config_value(int lut)
 {
   dcube *input;
   uint32_t result;
+  int in_cnt;
   int i;
+  int bit_cnt;
+  
+  in_cnt = pinfoGetInCnt(&(pluc_lut_list[lut].pi));
+  assert( in_cnt <= 5 );
+  
+  bit_cnt = 1<<in_cnt;
   
   input = &(pluc_lut_list[lut].pi.tmp[10]);
   
-  dcInSetAll(&(pluc_lut_list[lut].pi), input, CUBE_IN_MASK_ZERO);
+  /* prepare the counter, all DC except for the inputs (which are set to 0) */
+  dcInSetAll(&(pluc_lut_list[lut].pi), input, CUBE_IN_MASK_DC);
+  for( i = 0; i < in_cnt; i++ )
+    dcSetIn(input, i, 1);
   
+  /* calculate the truth table for each input combination */
   result = 0;
-  for( i = 0; i < 32; i++ )
+  for( i = 0; i < bit_cnt; i++ )
   {
     dclResult(&(pluc_lut_list[lut].pi), input, pluc_lut_list[lut].dcl);
     if ( dcGetOut(input, 0) != 0 )
