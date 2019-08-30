@@ -998,11 +998,12 @@ void pluc_out(const char *s)
 void pluc_out_regop(pluc_regop_t *regop)
 {
   static char s[1024];
+  const char *base = "";
   uint32_t adr = 0L;
   switch(regop->base)
   {
-    case 0:	adr = 0x40028000;	break;
-    case 1:	adr = 0x4000c000;	break;
+    case 0:	adr = 0x40028000;	base = "PLU"; break;
+    case 1:	adr = 0x4000c000;	base = "SWM"; break;
     default: assert(0); break;
   }
   adr += regop->idx;
@@ -1015,38 +1016,41 @@ void pluc_out_regop(pluc_regop_t *regop)
       s[0] = '\0';
       break;
     case 1:
-      sprintf(s, "*(uint32_t *)0x%08x = 0x%08xUL;", adr, regop->or_value);
+      sprintf(s, "*(uint32_t *)0x%08x = 0x%08xUL; /*%s*/", adr, regop->or_value, base);
       break;
     case 2:
-      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL;", adr, regop->and_value);
+      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL; /*%s*/", adr, regop->and_value, base);
       break;
     case 3:
-      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL;", adr, regop->and_value);
+      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL; /*%s*/", adr, regop->and_value, base);
       break;
     case 4:
-      sprintf(s, "*(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->or_value);
+      sprintf(s, "*(uint32_t *)0x%08x |= 0x%08xUL; /*%s*/", adr, regop->or_value, base);
       break;
     case 5:
-      sprintf(s, "*(uint32_t *)0x%08x |= ~0x%08xUL;", adr, regop->or_value);
+      sprintf(s, "*(uint32_t *)0x%08x |= ~0x%08xUL; /*%s*/", adr, regop->or_value, base);
       break;
     case 6:
-      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->and_value, adr, regop->or_value);
+      sprintf(s, "*(uint32_t *)0x%08x &= 0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL; /*%s*/", adr, regop->and_value, adr, regop->or_value, base);
       break;
     case 7:
-      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL;", adr, regop->and_value, adr, regop->or_value);
+      sprintf(s, "*(uint32_t *)0x%08x &= ~0x%08xUL; *(uint32_t *)0x%08x |= 0x%08xUL; /*%s*/", adr, regop->and_value, adr, regop->or_value, base);
       break;
   }
-  
-  pluc_out("\t");
-  pluc_out(s);
-  pluc_out("\n");
+
+  if ( s[0] != '\0' )
+  {
+    pluc_out("\t");
+    pluc_out(s);
+    pluc_out("\n");
+  }
 }
 
 void pluc_out_wire(pluc_wire_t *wire)
 {
   static char s[1024];
   int i;
-  sprintf("\t/* %s --> %s */\n", wire->from, wire->to);
+  sprintf(s, "\t/* %s --> %s */\n", wire->from, wire->to);
   pluc_out(s);
   for( i = 0; i < PLUC_WIRE_REGOP_CNT; i++ )
   {
@@ -1054,8 +1058,23 @@ void pluc_out_wire(pluc_wire_t *wire)
   }
 }
 
+void pluc_codegen_wire(void)
+{
+  int i = 0;
+  while( lpc804_wire_table[i].from != NULL )
+  {
+    if ( lpc804_wire_table[i].is_used )
+    {
+      pluc_out_wire(lpc804_wire_table+i);
+    }
+    i++;
+  }  
+}
 
 
+/*
+  0x40028000+0x800+lut*4
+*/
 uint32_t pluc_get_lut_config_value(int lut)
 {
   dcube *input;
@@ -1090,7 +1109,37 @@ uint32_t pluc_get_lut_config_value(int lut)
   return result;
 }
 
+void pluc_out_lut_config_value(int lut)
+{
+  static char s[1024];
+  
+  sprintf(s, "\t/* LUT %d Config Value */\n", lut);
+  pluc_out(s);
+  sprintf(s, "\t*(uint32_t *)0x%08x = 0x%08xUL; /*PLU*/\n", 0x40028000+0x800+lut*4, pluc_get_lut_config_value(lut));
+  pluc_out(s);
+  
+}
 
+void pluc_codegen_lut(void)
+{
+  int i;
+  for( i = 0; i < PLUC_LUT_MAX; i++ )
+  {
+    if ( pluc_lut_list[i].is_placed )
+    {
+      pluc_out_lut_config_value(i);
+    }
+  }
+}
+
+
+
+int pluc_codegen(void)
+{
+  pluc_codegen_wire();
+  pluc_codegen_lut();
+  return 1;
+}
 
 /*==================================================*/
 int pluc(void)
@@ -1103,6 +1152,9 @@ int pluc(void)
     return 0;
   if ( pluc_route() == 0 )
     return 0;
+  if ( pluc_codegen() == 0 )
+    return 0;
+
   //dclShow(&pi, cl_on);
   //dclShow(&pi2, cl2_on);
   return 1;
