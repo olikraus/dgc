@@ -1,0 +1,6 @@
+# pluc_clk.bex
+# should route directly from CLKOUT to PLU_CLKIN (via GPIO pin)
+
+PLU_CLKIN <= CLKOUT;
+
+

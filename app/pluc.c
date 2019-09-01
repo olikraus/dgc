@@ -133,6 +133,7 @@ int pluc_internal_cnt = 0;
 #define PLUC_WIRE_PLU_IN(in) PLUC_WIRE_STRING( PLUINPUT ## in)
 #define PLUC_WIRE_PLU_OUT(out) PLUC_WIRE_STRING( PLUOUT ## out)
 
+
 #define PLUC_CONNECT_PLU_IN_LUT_IN(from, lut, in, idx, v) \
  { PLUC_WIRE_PLU_IN(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 1, 0 } ,
 
@@ -156,6 +157,14 @@ int pluc_internal_cnt = 0;
 
 #define LPC804_CONNECT_LUT_OUT_FF_OUT(lut, ff) \
  { PLUC_WIRE_LUT_OUT(lut), PLUC_WIRE_FF_OUT(ff), {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, 0, 0, 0, 1	 } ,
+
+/* o: offset, pos: 0..3 */
+
+#define LPC804_CONNECT_GPIO_TO_FN(gpio_no, fn, idx, pos) \
+ { "PIO0_" #gpio_no, #fn, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 },
+
+#define LPC804_CONNECT_FN_TO_GPIO(gpio_no, fn, idx, pos) \
+ { #fn, "PIO0_" #gpio_no, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 },
 
 
 #define PLUC_CONNECT_NONE() \
@@ -228,6 +237,73 @@ int pluc_internal_cnt = 0;
   LPC804_CONNECT_FF_OUT_PLU_OUT(ff, 6) \
   LPC804_CONNECT_FF_OUT_PLU_OUT(ff, 7) \
   LPC804_CONNECT_LUT_OUT_FF_OUT(ff, ff)
+
+
+#define LPC804_CONNECT_TO_FN(fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(30, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(29, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(28, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(27, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(26, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(25, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(24, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(23, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(22, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(21, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(20, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(19, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(18, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(17, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(16, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(15, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(14, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(13, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(12, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(11, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(10, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(9, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(8, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(7, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(5, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(4, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(3, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(2, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(1, fn, idx, pos) \
+  LPC804_CONNECT_GPIO_TO_FN(0, fn, idx, pos) 
+
+
+#define LPC804_CONNECT_FROM_FN(fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(30, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(29, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(28, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(27, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(26, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(25, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(24, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(23, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(22, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(21, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(20, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(19, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(18, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(17, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(16, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(15, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(14, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(13, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(12, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(11, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(10, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(9, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(8, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(7, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(5, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(4, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(3, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(2, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(1, fn, idx, pos) \
+  LPC804_CONNECT_FN_TO_GPIO(0, fn, idx, pos) 
+
 
 pluc_wire_t lpc804_wire_table[] = {
   LPC804_CONNECT_GPIO_PLU_IN(PIO0_00, 0, 0)
@@ -329,8 +405,34 @@ pluc_wire_t lpc804_wire_table[] = {
   LPC804_CONNECT_FF(2)
   LPC804_CONNECT_FF(3)
   
+  
+  LPC804_CONNECT_TO_FN(PLU_CLKIN, 0x01c, 3)
+  LPC804_CONNECT_TO_FN(LVLSHFT_IN0, 0x018, 1)
+  LPC804_CONNECT_TO_FN(LVLSHFT_IN1, 0x018, 2)
+  LPC804_CONNECT_TO_FN(T0_CAP0, 0x00c, 1)
+  LPC804_CONNECT_TO_FN(T0_CAP1, 0x00c, 2)
+  LPC804_CONNECT_TO_FN(T0_CAP2, 0x00c, 3)
+  
+  LPC804_CONNECT_FROM_FN(T0_MAT0,  0x010, 0)
+  LPC804_CONNECT_FROM_FN(T0_MAT1,  0x010, 1)
+  LPC804_CONNECT_FROM_FN(T0_MAT2,  0x010, 2)
+  LPC804_CONNECT_FROM_FN(T0_MAT3,  0x010, 3)
+
+  LPC804_CONNECT_FROM_FN(LVLSHFT_OUT0,  0x018, 3)
+  LPC804_CONNECT_FROM_FN(LVLSHFT_OUT1,  0x01c, 0)
+  LPC804_CONNECT_FROM_FN(COMP0_OUT,  0x014, 2)
+  LPC804_CONNECT_FROM_FN(CLKOUT,  0x014, 3)
+  LPC804_CONNECT_FROM_FN(GPIO_INT_BMAT,  0x018, 0)
+
+  
   PLUC_CONNECT_NONE()
 };
+
+
+/*==================================================*/
+/* forward declarations */
+int pluc_calc_from_to(const char *from, const char *to);
+void pluc_mark_route_chain_wire_list(void);
 
 
 /*==================================================*/
@@ -506,6 +608,24 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
+    if ( dclCnt(cl) == 1 )
+    {
+      if ( dcGetIn( dclGet(cl, 0), 0 ) == 2 )		/* identity: input equals output */
+      {
+	if ( pi->in_cnt == 1 && pi->out_cnt == 1 )
+	{
+	  if ( pluc_calc_from_to(pinfoGetInLabel(pi, 0), pinfoGetOutLabel(pi, 0)) != 0 )
+	  {
+	    pluc_mark_route_chain_wire_list();
+	    return 1;
+	  }
+	}
+      }
+      else if (dcGetIn( dclGet(cl, 0), 0 ) == 1 ) /* inverted: output <= !input */
+      {
+	/* could be implemented with GPIO read value inversion, if there is a GPIO used */
+      }
+    }
     
     if ( pluc_add_lut(pi, cl) == 0 )
       return 0;
@@ -839,6 +959,9 @@ int _pluc_calc_from_to_sub(const char *from, const char *to)
   calculate the chain from the given wire to the provided wire.
   fills the pluc_route_chain_list array and also updates pluc_route_chain_cnt 
   During the calculation any is_used connections are ignored.
+
+  pluc_route_chain_cnt is updated.
+  After successfull call to this function, also call pluc_mark_route_chain_wire_list();
 */
 int pluc_calc_from_to(const char *from, const char *to)
 {
@@ -995,6 +1118,13 @@ void pluc_out(const char *s)
   printf("%s", s);
 }
 
+void pluc_codegen_init(void)
+{
+  pluc_out("\t*(uint32_t *)0x40048080UL |= (1UL<<6);    /* Enable GPIO0 Clock */\n");
+  pluc_out("\t*(uint32_t *)0x40048080UL |= (1UL<<7);    /* Enable SWM Clock */\n");
+  pluc_out("\t*(uint32_t *)0x40048084UL |= (1UL<<5);    /* Enable PLU Clock */\n");
+}
+
 void pluc_out_regop(pluc_regop_t *regop)
 {
   static char s[1024];
@@ -1136,6 +1266,7 @@ void pluc_codegen_lut(void)
 
 int pluc_codegen(void)
 {
+  pluc_codegen_init();
   pluc_codegen_wire();
   pluc_codegen_lut();
   return 1;

@@ -1,0 +1,12 @@
+#
+# pluc_nclk.bex
+#  
+# similar to pluc_clk.bex
+# Technically, if a signal is routed via GPIO pin, then it could be inverted.
+# However, this is not supported. Instead the following function will use a 
+# LUT to do the inversion.
+
+
+PLU_CLKIN <= !CLKOUT;
+
+
