@@ -1440,6 +1440,7 @@ int IsValidBEXFile(const char *filename)
   return free(content), 1;
 }
 
+
 /*---------------------------------------------------------------------------*/
 
 static int dclWriteBEXInLabel(pinfo *pi, int i, FILE *fp)

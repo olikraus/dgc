@@ -326,7 +326,9 @@ int dclHazardAnalysis(pinfo *pi, dclist cl, dcube *start, dcube *end, int out, i
 int dclIsHazardfreeTransition(pinfo *pi, dclist cl, dcube *start, dcube *end);
 
 /* dcex.c */
+int dclReadBEXStr(pinfo *pi, dclist cl_on, dclist cl_dc, const char *content);
 int dclReadBEX(pinfo *pi, dclist cl_on, dclist cl_dc, const char *filename);
+int IsValidBEXStr(const char *content);
 int IsValidBEXFile(const char *filename);
 int dclWriteBEX(pinfo *pi, dclist cl, const char *filename);
 int dclWrite3DEQN(pinfo *pi, dclist cl, const char *filename);

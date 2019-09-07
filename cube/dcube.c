@@ -2638,6 +2638,9 @@ int dclImport(pinfo *pi, dclist cl_on, dclist cl_dc, const char *filename)
   if ( IsValidDichotomyFile(filename) != 0 )
     return dclReadDichotomy(pi, cl_on, filename);
 
+  if ( IsValidBEXStr(filename) != 0 )
+    return dclReadBEXStr(pi, cl_on, cl_dc, filename);
+  
   return 0;
 }
 

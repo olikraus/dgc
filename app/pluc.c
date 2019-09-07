@@ -492,24 +492,46 @@ int pluc_init(void)
 /*==================================================*/
 /*=== read ===*/
 /*==================================================*/
-int pluc_read(void)
+
+/*
+  There a two global problem descriptions
+  pi, cl_on, cl_dc and pi2, cl2_on, cl2_dc
+
+   
+*/
+
+/* merge file into pi/cl_on */
+int pluc_read_file(const char *filename)
 {
-  int i;
-  pluc_log("Read (files: %d)", cl_file_cnt);
-  for( i = 0; i < cl_file_cnt; i++ )
-  {
     pinfoDestroy(&pi2);
     if ( pinfoInit(&pi2) == 0 )
       return 0;
-    if ( dclImport(&pi2, cl2_on, cl2_dc, cl_file_list[i]) == 0 )
+    dclClear(cl2_on);
+    if ( dclImport(&pi2, cl2_on, cl2_dc, filename) == 0 )
     {
-      pluc_err("Import pluc_error with file %s", cl_file_list[i]);
+      pluc_err("Import pluc_error with file %s", filename);
       return 0;
     }
     
     /* combine both functions, consider the case where the output of cl2 is input of cl */
     pinfoMerge(&pi, cl_on, &pi2, cl2_on);
-    
+    return 1;
+}
+
+int pluc_read(void)
+{
+  int i;
+  pluc_log("Read (files: %d)", cl_file_cnt);
+  
+  pinfoDestroy(&pi);
+  if ( pinfoInit(&pi) == 0 )
+    return 0;
+  dclClear(cl_on);
+  
+  for( i = 0; i < cl_file_cnt; i++ )
+  {
+    if ( pluc_read_file(cl_file_list[i]) == 0 )
+      return 0;
   }
   return 1;
 }
@@ -1273,14 +1295,48 @@ int pluc_codegen(void)
 }
 
 /*==================================================*/
-int pluc(void)
+
+
+int pluc_read_and_merge(void)
+{
+  int i;
+  pluc_log("Read (files: %d)", cl_file_cnt);
+  
+  
+  for( i = 0; i < cl_file_cnt; i++ )
+  {
+    pinfoDestroy(&pi);
+    if ( pinfoInit(&pi) == 0 )
+      return 0;
+    dclClear(cl_on);
+    
+    if ( pluc_read_file(cl_file_list[i]) == 0 )
+      return 0;
+    if ( pluc_map() == 0 )		// assumes problen in pl, cl_on
+      return 0;
+  }
+  return 1;
+}
+
+
+
+int pluc(int is_merge)
 {
   if ( pluc_init() == 0 )
     return 0;
-  if ( pluc_read() == 0 )
-    return 0;
-  if ( pluc_map() == 0 )
-    return 0;
+  
+  if ( is_merge != 0 )
+  {
+    if ( pluc_read() == 0 )		// read into in pl, cl_on
+      return 0;
+    if ( pluc_map() == 0 )		// assumes problen in pl, cl_on
+      return 0;
+  }
+  else
+  {
+    if ( pluc_read_and_merge() == 0 )
+      return 0;
+  }
   if ( pluc_route() == 0 )
     return 0;
   if ( pluc_codegen() == 0 )
@@ -1356,7 +1412,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    pluc();
+    pluc(0);
   }
 }
 
