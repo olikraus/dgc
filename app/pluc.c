@@ -79,8 +79,10 @@ struct _pluc_wire_struct
   const char *from;
   const char *to;
   pluc_regop_t regop[PLUC_WIRE_REGOP_CNT];
+  int8_t is_rd_block;			/* this connection requires read blocking */
   int8_t is_used;
-  int8_t is_blocked;		/* shared resourced can be blocked, once they are used */
+  int8_t is_wr_blocked;		/* shared resourced can be blocked for writing, once they are used */
+  int8_t is_rd_blocked;		/* shared resourced can be blocked for reading, once they are used, will be used only if is_rd_block is 1 */
   int8_t is_lut_in;
   int8_t is_lut_out;
   
@@ -135,36 +137,36 @@ int pluc_internal_cnt = 0;
 
 
 #define PLUC_CONNECT_PLU_IN_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_PLU_IN(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 1, 0 } ,
+ { PLUC_WIRE_PLU_IN(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_PLU_OUT_GPIO(out, gpio, o) \
- { PLUC_WIRE_PLU_OUT(out), #gpio, {{7, 1, 0x180, 3<<(out*2+12), o<<(out*2+12)}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 } ,
+ { PLUC_WIRE_PLU_OUT(out), #gpio, {{7, 1, 0x180, 3<<(out*2+12), o<<(out*2+12)}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 0 } ,
 
 #define PLUC_CONNECT_LUT_OUT_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_LUT_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 1, 0 } ,
+ { PLUC_WIRE_LUT_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_LUT_OUT_PLU_OUT(lutout, pluout) \
- { PLUC_WIRE_LUT_OUT(lutout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, lutout}, {0, 0, 0, 0, 0}}, 0, 0, 0, 1 } ,
+ { PLUC_WIRE_LUT_OUT(lutout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, lutout}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 1 } ,
 
 #define PLUC_CONNECT_FF_OUT_LUT_IN(from, lut, in, idx, v) \
- { PLUC_WIRE_FF_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 1, 0 } ,
+ { PLUC_WIRE_FF_OUT(from), PLUC_WIRE_LUT_IN(lut, in), {{1, 0, idx, 0, v}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 1, 0 } ,
 
 #define LPC804_CONNECT_FF_OUT_PLU_OUT(ffout, pluout) \
- { PLUC_WIRE_FF_OUT(ffout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, ffout+26}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 } ,
+ { PLUC_WIRE_FF_OUT(ffout), PLUC_WIRE_PLU_OUT(pluout), {{1, 0, 0xc00+pluout*4, 0, ffout+26}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 0 } ,
 
 #define LPC804_CONNECT_GPIO_PLU_IN(gpio, in, o) \
- { #gpio, PLUC_WIRE_PLU_IN(in), {{7, 1, 0x180, 3<<(in*2), o<<(in*2)}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 } ,
+ { #gpio, PLUC_WIRE_PLU_IN(in), {{7, 1, 0x180, 3<<(in*2), o<<(in*2)}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 0 } ,
 
 #define LPC804_CONNECT_LUT_OUT_FF_OUT(lut, ff) \
- { PLUC_WIRE_LUT_OUT(lut), PLUC_WIRE_FF_OUT(ff), {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, 0, 0, 0, 1	 } ,
+ { PLUC_WIRE_LUT_OUT(lut), PLUC_WIRE_FF_OUT(ff), {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 1	 } ,
 
 /* o: offset, pos: 0..3 */
 
 #define LPC804_CONNECT_GPIO_TO_FN(gpio_no, fn, idx, pos) \
- { "PIO0_" #gpio_no, #fn, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 },
+ { "PIO0_" #gpio_no, #fn, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 0, 0, 0, 0, 0, 0 },
 
 #define LPC804_CONNECT_FN_TO_GPIO(gpio_no, fn, idx, pos) \
- { #fn, "PIO0_" #gpio_no, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 0, 0, 0, 0 },
+ { #fn, "PIO0_" #gpio_no, { {7, 1, idx, 255UL<<(pos*8), gpio_no<<(pos*8) }, {0, 0, 0, 0, 0}}, 1, 0, 0, 0, 0, 0 },
 
 
 #define PLUC_CONNECT_NONE() \
@@ -653,8 +655,8 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       return 0;
     pluc_log("Map: Leaf fn (in-cnt %d) added to LUT table (index %d), output '%s'", none_dc_cnt, pluc_lut_cnt-1, pinfoGetOutLabel(pi, 0));
     
-    printf("leaf (depth=%d)\n", depth);
-    dclShow(pi, cl);
+    //printf("leaf (depth=%d)\n", depth);
+    //dclShow(pi, cl);
     return 1;
   }
   
@@ -759,12 +761,28 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
 
 int pluc_map(void)
 {
-  int result;
-  dcube *cof = pi.tmp+2;
-  dcSetTautology(&pi, cof);
-  result = pluc_map_cof(&pi, cl_on, cof, 0);
+  int out_var;
+  pluc_log("Map (output variables: %d)", pi.out_cnt);
   
-  return result;
+  for( out_var = 0; out_var < pi.out_cnt; out_var++)
+  {
+    
+    pinfoDestroy(&pi2);
+    dclDestroy(cl2_on);
+    if ( pinfoInitFromOutVar(&pi2, &cl2_on, &pi, cl_on, out_var) == 0 )
+    {
+      pluc_log("Map failed (pinfoInitFromOutVar)");
+      return 0;
+    }
+    dcube *cof = pi2.tmp+2;
+    dcSetTautology(&pi2, cof);
+    if ( pluc_map_cof(&pi2, cl2_on, cof, 0) == 0 )
+    {
+      pluc_log("Map failed (pluc_map_cof)");
+      return 0;
+    }
+  }
+  return 1;
 }
 
 /*==================================================*/
@@ -838,7 +856,7 @@ void pluc_mark_route_chain_wire_list(void)
     /* mark the route as used */
     lpc804_wire_table[pluc_route_chain_list[i]].is_used = 1;
     
-    /* mark all other routs, leading to the same resource, as blocked */
+    /* mark all other routes, leading to the same resource, as blocked */
     j = 0;
     while( lpc804_wire_table[j].from != NULL )
     {
@@ -846,14 +864,32 @@ void pluc_mark_route_chain_wire_list(void)
       {
 	if ( strcmp(lpc804_wire_table[pluc_route_chain_list[i]].to, lpc804_wire_table[j].to) == 0 )
 	{
-	  lpc804_wire_table[j].is_blocked = 1;
-	  //pluc_log("Route: Blocked %s -> %s", lpc804_wire_table[j].from, lpc804_wire_table[j].to);
+	  lpc804_wire_table[j].is_wr_blocked = 1;
+	  //pluc_log("Route: Write blocked %s -> %s", lpc804_wire_table[j].from, lpc804_wire_table[j].to);
 	}
       }
       j++;
     }
-   
-  }
+
+    /* if the input (read block) also needs to be blocked, then do so... */
+    if ( lpc804_wire_table[pluc_route_chain_list[i]].is_rd_block )
+    {
+      j = 0;
+      while( lpc804_wire_table[j].from != NULL )
+      {
+	if ( j != pluc_route_chain_list[i] )
+	{
+	  if ( strcmp(lpc804_wire_table[pluc_route_chain_list[i]].from, lpc804_wire_table[j].from) == 0 )
+	  {
+	    lpc804_wire_table[j].is_rd_blocked = 1;
+	    //pluc_log("Route: Read blocked %s -> %s", lpc804_wire_table[j].from, lpc804_wire_table[j].to);
+	  }
+	}
+	j++;
+      } // while	
+    } // if is_rd_block
+    
+  } // for chain
 }
 
 int pluc_find_to(const char *s)
@@ -953,7 +989,7 @@ int _pluc_calc_from_to_sub(const char *from, const char *to)
   //pluc_log("from_to: %s-->%s", from, to);
   while( lpc804_wire_table[i].from != NULL )
   {
-    if ( lpc804_wire_table[i].is_blocked == 0 )
+    if ( lpc804_wire_table[i].is_rd_blocked == 0 && lpc804_wire_table[i].is_wr_blocked == 0  )
     {
       if ( strcmp(lpc804_wire_table[i].from, from) == 0 )
       {
@@ -961,13 +997,13 @@ int _pluc_calc_from_to_sub(const char *from, const char *to)
 	{
 	  /* found leaf node */
 	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
-	  pluc_log("from_to: %s-->%s", from, to);
+	  //pluc_log("from_to: %s-->%s", from, to);
 	  return 1;
 	}
 	if ( _pluc_calc_from_to_sub(lpc804_wire_table[i].to, to) != 0 )
 	{
 	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
-	  pluc_log("from_to: %s-->%s", from, to);
+	  //pluc_log("from_to: %s-->%s", from, to);
 	  return 1;
 	}
       }
@@ -1412,7 +1448,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    pluc(0);
+    pluc(1);
   }
 }
 

@@ -162,19 +162,22 @@ int pinfoInitFromOutVar(pinfo *pi_dest, dclist *cl_dest_ptr, pinfo *pi_src, dcli
   
   if ( pinfoCopyInLabels(pi_dest, pinfoGetInLabelList(pi_src)) == 0 )
     return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
-  if ( pinfoAddOutLabel(pi_dest, pinfoGetOutLabel(pi_src, out_var)) == 0 )
+  if ( pinfoAddOutLabel(pi_dest, pinfoGetOutLabel(pi_src, out_var))  < 0 )
     return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
 
-  /* copy the cobes and adjust the output */
+  /* copy the cubes and adjust the output */
   
   cnt = dclCnt(cl_src);
   for( i = 0; i < cnt; i++ )
   {
-    c =dclAddEmptyCube(pi_dest, cl_dest);
-    if ( c == NULL )
-      return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
-    dcCopyIn(pi_dest, c, dclGet(cl_src, i));
-    dcSetOut( c, 0, dcGetOut(dclGet(cl_src, i), out_var));
+    if ( dcGetOut(dclGet(cl_src, i), out_var) != 0 )
+    {
+      c =dclAddEmptyCube(pi_dest, cl_dest);
+      if ( c == NULL )
+	return pinfoDestroy(pi_dest), dclDestroy(cl_dest), 0;
+      dcCopyIn(pi_dest, c, dclGet(cl_src, i));
+      dcSetOut( c, 0, 1);
+    }
   }
   
   return 1;
@@ -1547,6 +1550,8 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
   }
   return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 1;  
 }
+
+
 
 /*---------------------------------------------------------------------------*/
 
