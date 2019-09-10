@@ -632,6 +632,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
+    dclShow(pi, cl);
     if ( dclCnt(cl) == 1 )
     {
       if ( dcGetIn( dclGet(cl, 0), 0 ) == 2 )		/* identity: input equals output */
@@ -643,6 +644,14 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
 	    pluc_mark_route_chain_wire_list();
 	    return 1;
 	  }
+	  else
+	  {
+	    pluc_log("Map: No route for identify %s --> %s", pinfoGetInLabel(pi, 0), pinfoGetOutLabel(pi, 0));	  
+	  }
+	}
+	else
+	{
+	  pluc_log("Map: in or out not 1");	  
 	}
       }
       else if (dcGetIn( dclGet(cl, 0), 0 ) == 1 ) /* inverted: output <= !input */
@@ -774,8 +783,14 @@ int pluc_map(void)
       pluc_log("Map failed (pinfoInitFromOutVar)");
       return 0;
     }
+    assert(pi2.out_cnt == 1);
     dcube *cof = pi2.tmp+2;
     dcSetTautology(&pi2, cof);
+    
+    /* remove dc column, so that we can more easier detect direct routes */
+    pluc_remove_dc(&pi2, cl2_on);
+    
+    /* start the simplification */
     if ( pluc_map_cof(&pi2, cl2_on, cof, 0) == 0 )
     {
       pluc_log("Map failed (pluc_map_cof)");

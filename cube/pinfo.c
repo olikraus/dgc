@@ -155,7 +155,7 @@ int pinfoInitFromOutVar(pinfo *pi_dest, dclist *cl_dest_ptr, pinfo *pi_src, dcli
   if ( dclInit(cl_dest_ptr) == 0 )
     return 0;
   cl_dest = *cl_dest_ptr;
-  if ( pinfoInitInOut(pi_dest, pi_src->in_cnt, 1) == 0 )
+  if ( pinfoInitInOut(pi_dest, pi_src->in_cnt, 0) == 0 )
     return dclDestroy(cl_dest), 0;
   
   /* assign in and out labels */
