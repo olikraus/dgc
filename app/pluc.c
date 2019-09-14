@@ -469,6 +469,7 @@ void pluc_err(const char *format, ...)
 static void pluc_fsm_log_fn(void *data, int ll, char *fmt, va_list va)
 {
   vprintf(fmt, va);
+  puts("");
 }
 
 
@@ -533,11 +534,11 @@ int pluc_build_fsm(void)
   {
     if ( fsm_GetNodeCnt(fsm) > fsm_GetGroupCnt(fsm) )
     {
-      printf("FSM: State reduction %d -> %d", fsm_GetNodeCnt(fsm), fsm_GetGroupCnt(fsm));
+      pluc_log("FSM: State reduction %d -> %d", fsm_GetNodeCnt(fsm), fsm_GetGroupCnt(fsm));
     }
     else
     {
-      printf("FSM: State count = %d", fsm_GetNodeCnt(fsm));
+      pluc_log("FSM: State count = %d", fsm_GetNodeCnt(fsm));
     }
   }
   
@@ -593,14 +594,7 @@ int pluc_read_file(const char *filename)
       pluc_build_fsm();
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
     }
-    else
-    {
-      pluc_err("Import pluc_error with file %s", filename);
-      return 0;
-    }
-
-    
-    if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
+    else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
     {
       /* combine both functions, consider the case where the output of cl2 is input of cl */
       pinfoMerge(&pi, cl_on, &pi2, cl2_on);

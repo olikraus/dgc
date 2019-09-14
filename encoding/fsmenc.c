@@ -102,8 +102,10 @@ int fsm_BuildClockedMachine(fsm_type fsm, int coding_type)
         return 0;
       */
       if ( dclMinimizeDC(fsm->pi_machine, fsm->cl_machine, fsm->cl_machine_dc, 0, 1) == 0 )
+      {
+	fsm_Log(fsm, "FSM: Minimizing failed.");
         return 0;
-
+      }
       break;
   }
   return 1;
