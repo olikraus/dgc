@@ -33,6 +33,11 @@
 #include "mwc.h"
 #include "b_io.h"
 
+/*---------------------------------------------------------------------------*/
+
+char *fsm_state_out_signal = "zo";
+char *fsm_state_in_signal = "zi";
+
 
 /*---------------------------------------------------------------------------*/
 
@@ -1748,7 +1753,7 @@ int fsm_AssignLabelsToMachine(fsm_type fsm, int code_option)
       return 0;
 
   for( i = 0; i < state_label_code_width; i++ )
-    if ( b_sl_Set(in_sl, j++, fsm_GetStateLabel(fsm, i, "zi")) == 0 )
+    if ( b_sl_Set(in_sl, j++, fsm_GetStateLabel(fsm, i, fsm_state_in_signal)) == 0 )
       return 0;
 
   for( i = 0; i < in_out_label_code_width; i++ )
@@ -1759,7 +1764,7 @@ int fsm_AssignLabelsToMachine(fsm_type fsm, int code_option)
   j = 0;
 
   for( i = 0; i < state_label_code_width; i++ )
-    if ( b_sl_Set(out_sl, j++, fsm_GetStateLabel(fsm, i, "zo")) == 0 )
+    if ( b_sl_Set(out_sl, j++, fsm_GetStateLabel(fsm, i, fsm_state_out_signal)) == 0 )
       return 0;
 
   for( i = 0; i < fsm_GetOutCnt(fsm); i++ )

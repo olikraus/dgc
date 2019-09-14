@@ -36,6 +36,10 @@
 #include "pinfo.h"
 #include "dcex.h"
 
+extern char *fsm_state_out_signal;
+extern char *fsm_state_in_signal;
+
+
 struct _fsmgrp_struct
 {
   b_il_type node_group_list;

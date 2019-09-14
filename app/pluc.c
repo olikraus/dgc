@@ -486,6 +486,10 @@ int pluc_init(void)
     return 0;
   if ( dclInitVA(4, &cl_on, &cl_dc, &cl2_on, &cl2_dc) == 0 )
     return 0;
+
+  
+  fsm_state_out_signal = "FF";
+  fsm_state_in_signal = "FF";
   
   fsm = fsm_Open();
   if ( fsm == NULL )
