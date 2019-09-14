@@ -61,7 +61,7 @@ int fsm_BuildClockedMachine(fsm_type fsm, int coding_type)
     case FSM_ENCODE_IC_ALL:
       if( encode_IC_All( fsm )==0)
       {
-        if ( fsm_EncodeSimple(fsm) == 0 )
+        if ( fsm_EncodeSimple(fsm) == 0 )		/* fsm.c */
           return 0;
         fsm_Log(fsm, "FSM: Encoded Simple - IC_ALL impossible.");
         fsm_Log(fsm, "FSM: Building control function for clocked machines.");
@@ -90,7 +90,7 @@ int fsm_BuildClockedMachine(fsm_type fsm, int coding_type)
       break;
       
     case FSM_ENCODE_SIMPLE:
-      if ( fsm_EncodeSimple(fsm) == 0 )
+      if ( fsm_EncodeSimple(fsm) == 0 )			/* fsm.c */
         return 0;
       fsm_Log(fsm, "FSM: Encoded Simple.");
       fsm_Log(fsm, "FSM: Building control function for clocked machines.");

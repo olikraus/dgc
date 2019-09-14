@@ -162,7 +162,7 @@ int encode_IC_All( fsm_type fsm )
         fsm_Log(fsm, "FSM: Minimizing control function for clocked machines.");
         
         /* extra !!! */
-        extra_fsm_WriteEncoding(fsm, "example.codes");
+        //extra_fsm_WriteEncoding(fsm, "example.codes");
 
       }
       else

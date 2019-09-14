@@ -29,6 +29,8 @@
 #include <string.h>
 #include <assert.h>
 #include "dcube.h"
+#include "fsm.h"
+#include "fsmenc.h"
 #include "cmdline.h"
 
 /*==================================================*/
@@ -104,6 +106,9 @@ char cmdline_input[1024] = "";
 */
 pinfo pi, pi2;
 dclist cl_on, cl_dc, cl2_on, cl2_dc;
+  
+  fsm_type fsm = NULL;
+
 
 /*
   map
@@ -460,6 +465,13 @@ void pluc_err(const char *format, ...)
 /*==================================================*/
 /*=== init ===*/
 /*==================================================*/
+
+static void pluc_fsm_log_fn(void *data, int ll, char *fmt, va_list va)
+{
+  vprintf(fmt, va);
+}
+
+
 int pluc_init(void)
 {
   int i;
@@ -473,6 +485,11 @@ int pluc_init(void)
     return 0;
   if ( dclInitVA(4, &cl_on, &cl_dc, &cl2_on, &cl2_dc) == 0 )
     return 0;
+  
+  fsm = fsm_Open();
+  if ( fsm == NULL )
+    return 0;
+  fsm_PushLogFn(fsm, pluc_fsm_log_fn, NULL, 0);
 
   /* map */
 
@@ -502,6 +519,64 @@ int pluc_init(void)
    
 */
 
+
+int pluc_build_fsm(void)
+{
+  /*
+    is_fbo: is not used any more
+    is_old: If the new state minimizer fails, use the old method
+  */
+  if( fsm_MinimizeStates(fsm, /* is_fbo=*/ 0, /* is_old=*/ 0) == 0 )	
+    return 0;
+
+  if ( fsm_GetGroupCnt(fsm) > 0 )
+  {
+    if ( fsm_GetNodeCnt(fsm) > fsm_GetGroupCnt(fsm) )
+    {
+      printf("FSM: State reduction %d -> %d", fsm_GetNodeCnt(fsm), fsm_GetGroupCnt(fsm));
+    }
+    else
+    {
+      printf("FSM: State count = %d", fsm_GetNodeCnt(fsm));
+    }
+  }
+  
+  /*
+    encode is one of :
+    encode = FSM_ENCODE_FAN_IN; 
+    encode = FSM_ENCODE_IC_ALL; 
+    encode = FSM_ENCODE_IC_PART;
+    encode = FSM_ENCODE_SIMPLE; 
+  */
+  
+  if ( fsm_BuildClockedMachine(fsm, FSM_ENCODE_SIMPLE) == 0 )
+  {
+    return 0;
+  }
+  
+  /*
+  result:
+	fsm->pi_machine, 
+      fsm->cl_machine, 
+      fsm_GetCodeWidth(fsm), 
+      state signals have the format zo# and zi#
+  */
+  
+  
+  return 1;
+}
+
+int pluc_is_extension(const char *filename, const char *ext)
+{
+  size_t flen = strlen(filename);
+  size_t elen = strlen(ext);
+  if ( flen < elen )
+    return 0;
+  if ( strcmp(filename+flen-elen, ext) != 0 )
+    return 0;
+  return 1;	/* match */
+}
+
 /* merge file into pi/cl_on */
 int pluc_read_file(const char *filename)
 {
@@ -509,14 +584,33 @@ int pluc_read_file(const char *filename)
     if ( pinfoInit(&pi2) == 0 )
       return 0;
     dclClear(cl2_on);
-    if ( dclImport(&pi2, cl2_on, cl2_dc, filename) == 0 )
+    
+    if ( pluc_is_extension(filename, ".kiss") != 0 )
+    {
+      fsm_Clear(fsm);
+
+      fsm_Import(fsm, filename);
+      pluc_build_fsm();
+      pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
+    }
+    else
+    {
+      pluc_err("Import pluc_error with file %s", filename);
+      return 0;
+    }
+
+    
+    if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
+    {
+      /* combine both functions, consider the case where the output of cl2 is input of cl */
+      pinfoMerge(&pi, cl_on, &pi2, cl2_on);
+    }
+    else
     {
       pluc_err("Import pluc_error with file %s", filename);
       return 0;
     }
     
-    /* combine both functions, consider the case where the output of cl2 is input of cl */
-    pinfoMerge(&pi, cl_on, &pi2, cl2_on);
     return 1;
 }
 
@@ -1348,7 +1442,7 @@ int pluc_codegen(void)
 /*==================================================*/
 
 
-int pluc_read_and_merge(void)
+int pluc_read_and_merge(void)	// obsolete
 {
   int i;
   pluc_log("Read (files: %d)", cl_file_cnt);
@@ -1385,7 +1479,7 @@ int pluc(int is_merge)
   }
   else
   {
-    if ( pluc_read_and_merge() == 0 )
+    if ( pluc_read_and_merge() == 0 )   // obsolete
       return 0;
   }
   if ( pluc_route() == 0 )
