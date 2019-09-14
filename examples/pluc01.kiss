@@ -1,0 +1,24 @@
+# 
+# pluc01.kiss
+#
+# Frequency divider
+#
+
+.o 1
+.i 1
+
+.ob PIO0_10
+.ilb PIO0_13 
+
+.r s1
+
+0 s1 s1 0
+1 s1 s2 0
+1 s2 s2 0
+0 s2 s3 1
+0 s3 s3 1
+1 s3 s4 1
+1 s4 s4 1
+0 s4 s1 0
+
+

@@ -1379,6 +1379,7 @@ uint32_t pluc_get_lut_config_value(int lut)
   int bit_cnt;
   
   in_cnt = pinfoGetInCnt(&(pluc_lut_list[lut].pi));
+  assert( in_cnt > 0 );
   assert( in_cnt <= 5 );
   
   bit_cnt = 1<<in_cnt;
