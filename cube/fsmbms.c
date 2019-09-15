@@ -33,6 +33,18 @@
   A#  high level
   A~  low level
   
+  BMS spec:
+  http://www.cs.columbia.edu/~nowick/minimalist/node4.html
+  
+  file := input|output|reset|line
+  input := "input" name level
+  output := "output" name level
+  reset := "reset" name
+  line := name name inlist "|" outlist
+  inlist := {transition}
+  outlist := {transition}
+  transition := name "+" | name "-"
+  
 */
 
 #include "fsm.h"
