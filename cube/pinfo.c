@@ -1509,7 +1509,7 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
     {
       /* case 2. or 3. */
       /* output signal does not exist in the destintion function as input */
-      printf("Read: Merge true output %s\n", b_sl_GetVal(pi_src->out_sl, j));
+      //printf("Read: Merge true output %s\n", b_sl_GetVal(pi_src->out_sl, j));
       
       /* add the out label, return pos to existing or new label */
       //out_pos = b_sl_Find(pi_dest->out_sl, b_sl_GetVal(pi_src->out_sl, j));

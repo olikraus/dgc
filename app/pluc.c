@@ -597,7 +597,7 @@ int pluc_read_file(const char *filename)
 
       fsm_Import(fsm, filename);
       pluc_build_fsm();
-      dclShow(fsm->pi_machine, fsm->cl_machine);
+      //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
       //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
@@ -633,8 +633,10 @@ int pluc_read(void)
     if ( pluc_read_file(cl_file_list[i]) == 0 )
       return 0;
   }
+
+  pluc_log("Read: Done (overall problem in=%d out=%d)", pi.in_cnt, pi.out_cnt);
   
-  dclShow(&pi, cl_on);
+  //dclShow(&pi, cl_on);
 
   return 1;
 }
