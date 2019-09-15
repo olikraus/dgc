@@ -97,6 +97,7 @@ typedef struct _pluc_wire_struct pluc_wire_t;
 
 char c_file_name[1024] = "";
 int cmdline_listmap = 0;
+int cmdline_listkeywords = 0;
 char cmdline_output[1024] = "";
 char cmdline_input[1024] = "";
 
@@ -107,7 +108,9 @@ char cmdline_input[1024] = "";
 pinfo pi, pi2;
 dclist cl_on, cl_dc, cl2_on, cl2_dc;
   
-  fsm_type fsm = NULL;
+fsm_type fsm = NULL;
+
+b_sl_type pluc_keywords = NULL;
 
 
 /*
@@ -461,6 +464,34 @@ void pluc_err(const char *format, ...)
   va_end(va);
 }
 
+/*==================================================*/
+/*
+source:
+https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance
+Creative Commons Attribution-ShareAlike License
+*/
+#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
+
+int levenshtein(const char *s1, const char *s2) 
+{
+    unsigned int s1len, s2len, x, y, lastdiag, olddiag;
+    s1len = strlen(s1);
+    s2len = strlen(s2);
+    unsigned int column[s1len+1];
+    for (y = 1; y <= s1len; y++)
+        column[y] = y;
+    for (x = 1; x <= s2len; x++)
+    {
+        column[0] = x;
+        for (y = 1, lastdiag = x-1; y <= s1len; y++)
+	{
+            olddiag = column[y];
+            column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (s1[y-1] == s2[x-1] ? 0 : 1));
+            lastdiag = olddiag;
+        }
+    }
+    return(column[s1len]);
+}
 
 /*==================================================*/
 /*=== init ===*/
@@ -469,6 +500,38 @@ void pluc_err(const char *format, ...)
 static void pluc_fsm_log_fn(void *data, int ll, char *fmt, va_list va)
 {
   vprintf(fmt, va);
+  puts("");
+}
+
+int pluc_init_keywords(void)
+{
+  int i;
+  pluc_keywords = b_sl_Open();
+  if ( pluc_keywords == NULL )
+    return 0;
+  
+  i = 0;
+  while( lpc804_wire_table[i].from != NULL )
+  {
+    if ( b_sl_Find(pluc_keywords, lpc804_wire_table[i].from) < 0 )
+      if ( b_sl_Add(pluc_keywords, lpc804_wire_table[i].from) < 0 )
+	return 0;
+
+    if ( b_sl_Find(pluc_keywords, lpc804_wire_table[i].to) < 0 )
+      if ( b_sl_Add(pluc_keywords, lpc804_wire_table[i].to) < 0 )
+	return 0;
+    i++;
+  }
+  return 1;
+}
+
+void pluc_show_keywords(void)
+{
+  int i;
+  for( i = 0; i < b_sl_GetCnt(pluc_keywords); i++ )
+  {
+    printf("%s ", b_sl_GetVal(pluc_keywords, i));
+  }
   puts("");
 }
 
@@ -511,6 +574,9 @@ int pluc_init(void)
   
   pluc_lut_cnt = PLUC_FF_MAX;		// we could assign 0, if there is no state machine
     
+  if ( pluc_init_keywords() == 0 )
+    return 0;
+  
   return 1;
 }
 
@@ -518,11 +584,35 @@ int pluc_init(void)
 /*=== read ===*/
 /*==================================================*/
 
+
+int pluc_check_signal(const char *s)
+{
+  int distance_min = 30000;
+  const char *keyword_min = NULL;
+  int distance_curr;
+  int i;
+  
+  for( i = 0; i < b_sl_GetCnt(pluc_keywords); i++ )
+  {
+    if ( strcmp(b_sl_GetVal(pluc_keywords, i), s) == 0 )
+      return 1;
+    distance_curr = levenshtein(b_sl_GetVal(pluc_keywords, i), s);
+    if ( distance_min > distance_curr )
+    {
+      distance_min = distance_curr;
+      keyword_min = b_sl_GetVal(pluc_keywords, i);
+    }
+  }
+  if ( keyword_min != NULL )
+  {
+    pluc_err("Read: Signal '%s' invalid. Do you mean '%s'? Use 'pluc -listkeywords' to list all valid signal names. ", s, keyword_min);
+  }
+  return 0;
+}
+
 /*
   There a two global problem descriptions
-  pi, cl_on, cl_dc and pi2, cl2_on, cl2_dc
-
-   
+  pi, cl_on, cl_dc and pi2, cl2_on, cl2_dc   
 */
 
 
@@ -621,6 +711,7 @@ int pluc_read_file(const char *filename)
 int pluc_read(void)
 {
   int i;
+  b_sl_type sl;
   pluc_log("Read (files: %d)", cl_file_cnt);
   
   pinfoDestroy(&pi);
@@ -634,6 +725,17 @@ int pluc_read(void)
       return 0;
   }
 
+  sl = pinfoGetOutLabelList(&pi);
+  for( i = 0; i < b_sl_GetCnt(sl); i++ )
+    if ( pluc_check_signal(b_sl_GetVal(sl, i)) == 0 )
+      return 0;
+  sl = pinfoGetInLabelList(&pi);
+  for( i = 0; i < b_sl_GetCnt(sl); i++ )
+    if ( pluc_check_signal(b_sl_GetVal(sl, i)) == 0 )
+      return 0;
+  //b_sl_type pinfoGetOutLabelList(pinfo *pi);
+
+  
   pluc_log("Read: Done (overall problem in=%d out=%d)", pi.in_cnt, pi.out_cnt);
   
   //dclShow(&pi, cl_on);
@@ -1337,11 +1439,13 @@ int pluc_route(void)
   if ( pluc_route_lut_input() == 0 )
     return 0;
   
+  /*
   for( int i = 0; i < pluc_lut_cnt; i++ )
   {
     printf("pluc_lut_list entry %d:\n", i);
     dclShow(&(pluc_lut_list[i].pi), pluc_lut_list[i].dcl);    
   }
+  */
   
   
   return 1;
@@ -1545,6 +1649,7 @@ int pluc_read_and_merge(void)	// obsolete
 
 int pluc(int is_merge)
 {
+  
   if ( pluc_init() == 0 )
     return 0;
   
@@ -1562,6 +1667,9 @@ int pluc(int is_merge)
   }
   if ( pluc_route() == 0 )
     return 0;
+  
+  pluc_log("Synthesis done.");
+  
   if ( pluc_codegen() == 0 )
     return 0;
 
@@ -1580,6 +1688,7 @@ cl_entry_struct cl_list[] =
 {
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
+  { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },
   { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
   { CL_TYP_STRING,  "testinroute-Find a route from given input to a LUT", cmdline_input, 1024 },
   CL_ENTRY_LAST
@@ -1614,6 +1723,15 @@ int main(int argc, char **argv)
     }
     exit(0);
   }
+  
+  if ( cmdline_listkeywords != 0 )
+  {
+    pluc_init();
+    printf("Allowed keywords:\n");
+    pluc_show_keywords();
+    exit(0);
+  }
+
   
   if ( cmdline_output[0] != '\0' )
   {
