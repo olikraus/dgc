@@ -488,8 +488,9 @@ int pluc_init(void)
     return 0;
 
   
-  fsm_state_out_signal = "FF";
-  fsm_state_in_signal = "FF";
+  fsm_state_out_signal = "_FF_as_output_";
+  fsm_state_in_signal = "_FF_as_input_";		/* different name than out_signal, otherwise merge will not work */
+  
   
   fsm = fsm_Open();
   if ( fsm == NULL )
@@ -596,7 +597,12 @@ int pluc_read_file(const char *filename)
 
       fsm_Import(fsm, filename);
       pluc_build_fsm();
+      dclShow(fsm->pi_machine, fsm->cl_machine);
+      pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
+      //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
+      //dclShow(&pi, cl_on);
+      
     }
     else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
     {
@@ -627,6 +633,9 @@ int pluc_read(void)
     if ( pluc_read_file(cl_file_list[i]) == 0 )
       return 0;
   }
+  
+  dclShow(&pi, cl_on);
+
   return 1;
 }
 
@@ -647,6 +656,13 @@ const char *pluc_get_lut_output_name(int pos)
 {
   static char s[32];
   sprintf(s, "LUT%d", pos);
+  return s;
+}
+
+const char *pluc_get_ff_output_name(int pos)
+{
+  static char s[32];
+  sprintf(s, "FF%d", pos);
   return s;
 }
 
@@ -680,23 +696,45 @@ void pluc_remove_dc(pinfo *pi, dclist cl)
 */
 int pluc_add_lut(pinfo *pi, dclist cl)
 {
+  const char *out_signal;
   
-  if ( pinfoCopy( &(pluc_lut_list[pluc_lut_cnt].pi), pi) == 0 )
-    return 0;
+  out_signal = pinfoGetOutLabel(pi, 0);
+  if ( strncmp(out_signal, fsm_state_out_signal, strlen(fsm_state_out_signal)) != 0 )
+  {
+    /* not a FF, add this problem to the LUT table */
+    
+    if ( pinfoCopy( &(pluc_lut_list[pluc_lut_cnt].pi), pi) == 0 )
+      return 0;
 
-  if ( dclCopy(pi, pluc_lut_list[pluc_lut_cnt].dcl, cl) == 0 )
-    return 0;
-  
-  pluc_remove_dc(&(pluc_lut_list[pluc_lut_cnt].pi), pluc_lut_list[pluc_lut_cnt].dcl);
+    if ( dclCopy(pi, pluc_lut_list[pluc_lut_cnt].dcl, cl) == 0 )
+      return 0;
 
-  //if ( pluc_lut_list[pluc_lut_cnt].user_out_name != NULL )
-  //  free(pluc_lut_list[pluc_lut_cnt].user_out_name);
-  //pluc_lut_list[pluc_lut_cnt].user_out_name = NULL;
-  pluc_lut_list[pluc_lut_cnt].is_placed = 0;
-   
-   pluc_lut_cnt++;
-   
-   return 1;
+    pluc_remove_dc(&(pluc_lut_list[pluc_lut_cnt].pi), pluc_lut_list[pluc_lut_cnt].dcl);
+
+    //if ( pluc_lut_list[pluc_lut_cnt].user_out_name != NULL )
+    //  free(pluc_lut_list[pluc_lut_cnt].user_out_name);
+    //pluc_lut_list[pluc_lut_cnt].user_out_name = NULL;
+    pluc_lut_list[pluc_lut_cnt].is_placed = 0;
+
+    pluc_lut_cnt++;
+  }
+  else
+  {
+    /* FF, add this problem to the LUT table with has a FF output */
+
+    if ( pinfoCopy( &(pluc_lut_list[pluc_ff_cnt].pi), pi) == 0 )
+      return 0;
+
+    if ( dclCopy(pi, pluc_lut_list[pluc_ff_cnt].dcl, cl) == 0 )
+      return 0;
+
+    pluc_remove_dc(&(pluc_lut_list[pluc_ff_cnt].pi), pluc_lut_list[pluc_ff_cnt].dcl);
+
+    pluc_lut_list[pluc_ff_cnt].is_placed = 0;
+    
+    pluc_ff_cnt++;
+  }
+  return 1;
 }
 
 int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
@@ -724,7 +762,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
-    dclShow(pi, cl);
+    //dclShow(pi, cl);
     if ( dclCnt(cl) == 1 )
     {
       if ( dcGetIn( dclGet(cl, 0), 0 ) == 2 )		/* identity: input equals output */
@@ -815,8 +853,8 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
       return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
 
-    printf("connector (depth=%d)\n", depth);
-    dclShow(pi_connect, cl_connect);
+    //printf("connector (depth=%d)\n", depth);
+    //dclShow(pi_connect, cl_connect);
     
     if ( pluc_add_lut(pi_connect, cl_connect) == 0 )
       return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
@@ -939,6 +977,41 @@ int pluc_replace_internal_lut_signals(void)
 	if ( pluc_replace_all_lut_in(s, pluc_get_lut_output_name(i)) == 0 )
 	  return 0;
 	if ( pinfoSetOutLabel(&(pluc_lut_list[i].pi), 0, pluc_get_lut_output_name(i)) == 0 )
+	  return 0;
+      }
+    }
+  }
+  return 1;
+}
+
+/*
+  during read and map, ff output and ff input have different internal names
+  additionally the ff number (postfix) is defined by the reader, but must be
+  aligned with the position in the lut table.
+*/
+int pluc_replace_ff_signals(void)
+{
+  int i;
+  const char *s;
+  const char *post;
+  char buf[64];
+  
+  pluc_log("Route: Replace ff signal names (ff cnt=%d)", pluc_ff_cnt);
+
+  for( i = 0; i < pluc_ff_cnt; i++ )
+  {
+    s = pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0);
+    if ( s != NULL )
+    {
+      
+      if ( strncmp( s, fsm_state_out_signal, strlen(fsm_state_out_signal)) == 0 )
+      {
+	post = s + strlen(fsm_state_out_signal);
+	sprintf(buf, "%s%s", fsm_state_in_signal, post);
+	//pluc_log("Route: Replace %s -> %s", buf, pluc_get_ff_output_name(i));
+	if ( pluc_replace_all_lut_in(buf, pluc_get_ff_output_name(i)) == 0 )
+	  return 0;
+	if ( pinfoSetOutLabel(&(pluc_lut_list[i].pi), 0, pluc_get_ff_output_name(i)) == 0 )
 	  return 0;
       }
     }
@@ -1250,6 +1323,10 @@ int pluc_route(void)
   /* this is actually a result of the previous step, but is done here instead */
   if ( pluc_replace_internal_lut_signals() == 0 )
     return 0;
+  /* do the same with the ff luts */
+  if ( pluc_replace_ff_signals() == 0 )
+    return 0;
+
 
   /* connect LUT output signal, ignore LUTs where the output signal is identical with the LUT name */
   if ( pluc_route_external_connected_luts() == 0 )

@@ -139,7 +139,7 @@ struct _fsm_struct
   char linebuf[FSM_LINE_LEN];
   
   /* a buffer for label operations */
-  char labelbuf[16];
+  char labelbuf[64];
 };
 
 typedef struct _fsm_struct fsm_struct;

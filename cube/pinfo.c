@@ -1509,10 +1509,14 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
     {
       /* case 2. or 3. */
       /* output signal does not exist in the destintion function as input */
+      printf("Read: Merge true output %s\n", b_sl_GetVal(pi_src->out_sl, j));
       
       /* add the out label, return pos to existing or new label */
       //out_pos = b_sl_Find(pi_dest->out_sl, b_sl_GetVal(pi_src->out_sl, j));
       out_pos = pinfoAddOutLabel(pi_dest, b_sl_GetVal(pi_src->out_sl, j));
+      
+      if ( out_pos < 0 )
+	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
       
       /* extract the on set out of the source function */
       if ( dclCopyByOut(pi_src, src_on_cl, cl_src, j) == 0 )
@@ -1526,15 +1530,12 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
 	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
       */
       
-
-      if ( out_pos < 0 )
-	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
-
       /* loop over the source cubes */
       for( m = 0; m < dclCnt(src_on_cl); m++ )
       {	
 	/* constuct the new cube for the target list */
 	dcCopy( pi_dest, pi_dest->tmp+16, pi_dest->tmp+0 );	/* derive the new cube from the tautology block  */
+	dcOutSetAll(pi_dest, pi_dest->tmp+16, 0);
 	dcSetOut( pi_dest->tmp+16, out_pos, 1);		/* set the out variable */
 	for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
 	{

@@ -1713,7 +1713,7 @@ const char *fsm_GetOutLabel(fsm_type fsm, int pos, const char *post)
 
 const char *fsm_GetStateLabel(fsm_type fsm, int pos, const char *prefix)
 {
-  if ( strlen(prefix) > 8 )
+  if ( strlen(prefix) > 32 )		/* labelbuf has 64 bytes */
     return NULL;
   if ( pos < 0 ) 
     return NULL;
