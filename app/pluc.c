@@ -1440,7 +1440,8 @@ int pluc_route_lut_input(void)
     for( j = 0; j < pinfoGetInCnt(pi); j++ )
     {
 	
-      sprintf(in, "%s_INP%d", pluc_get_lut_output_name(i), pinfoGetInCnt(pi)-j-1);	/* the signal at pos 0 in pinfo becomes the highest input in the LUT */
+      //sprintf(in, "%s_INP%d", pluc_get_lut_output_name(i), pinfoGetInCnt(pi)-j-1);	/* the signal at pos 0 in pinfo becomes the highest input in the LUT */
+      sprintf(in, "%s_INP%d", pluc_get_lut_output_name(i), j);	
       if ( pluc_calc_from_to(pinfoGetInLabel(pi, j), in ) != 0 )
       {
 	  pluc_log("Route: LUT input path found from %s to %s ", pinfoGetInLabel(pi, j), in);
@@ -1507,6 +1508,8 @@ void pluc_out(const char *s)
 
 void pluc_codegen_pre(void)
 {
+  pluc_out("#include <stdint.h>\n");
+  pluc_out("\n");
   pluc_out("void plu(void)\n");
   pluc_out("{\n");
   pluc_out("\tuint32_t clkctrl0 = *(uint32_t *)0x40048080UL;   /* backup SYSAHBCLKCTRL0 */\n");
@@ -1730,8 +1733,9 @@ uint32_t pluc_get_lut_config_value(int lut)
     dclResult(&(pluc_lut_list[lut].pi), input, pluc_lut_list[lut].dcl);
     
     if ( dcGetOut(input, 0) != 0 )
-      result |= 1;
-    result <<= 1;
+      result |= (1<<i);
+    
+    pluc_log("%02d: %s", i, dcToStr(&(pluc_lut_list[lut].pi), input, " ", ""));
     
     /*
     result >>= 1;
@@ -1741,6 +1745,7 @@ uint32_t pluc_get_lut_config_value(int lut)
     
     dcInc(&(pluc_lut_list[lut].pi), input);
   }
+  pluc_log("LUT%d config value %08x, incnt=%d, bitcnt=%d", lut, result, bit_cnt, in_cnt);
   return result;
 }
 
