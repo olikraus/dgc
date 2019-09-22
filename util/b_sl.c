@@ -236,3 +236,19 @@ int b_sl_ExportToFP(b_sl_type b_sl, FILE *fp, const char *delim, const char *las
   return 1;
 }
 
+const char *b_sl_ToStr(b_sl_type b_sl, const char *delim)
+{
+  int i, cnt;
+  static char s[1024];		// overflow risk... shoule be improved once...
+  s[0] = '\0';
+  cnt = b_sl_GetCnt(b_sl);
+  assert(cnt < 10);
+  for( i = 0; i < cnt; i++ )
+  {
+    sprintf(s+strlen(s), "%s", b_sl_GetVal(b_sl,i));
+    if ( i+1 < cnt )
+      sprintf(s+strlen(s), "%s", delim);
+  }  
+  return s;
+}
+

@@ -924,8 +924,8 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       return 0;
     pluc_log("Map: Leaf fn (in-cnt %d) added to LUT table (index %d), output '%s'", none_dc_cnt, pluc_lut_cnt-1, pinfoGetOutLabel(pi, 0));
     
-    printf("leaf (depth=%d)\n", depth);
-    dclShow(pi, cl);
+    //printf("leaf (depth=%d)\n", depth);
+    //dclShow(pi, cl);
     return 1;
   }
   
@@ -1720,7 +1720,7 @@ uint32_t pluc_get_lut_config_value(int lut)
   int i;
   int bit_cnt;
   
-  dclShow(&(pluc_lut_list[lut].pi), pluc_lut_list[lut].dcl);
+  //dclShow(&(pluc_lut_list[lut].pi), pluc_lut_list[lut].dcl);
   
   in_cnt = pinfoGetInCnt(&(pluc_lut_list[lut].pi));
   assert( in_cnt > 0 );
@@ -1744,7 +1744,7 @@ uint32_t pluc_get_lut_config_value(int lut)
     if ( dcGetOut(input, 0) != 0 )
       result |= (1<<i);
     
-    pluc_log("%02d: %s", i, dcToStr(&(pluc_lut_list[lut].pi), input, " ", ""));
+    //pluc_log("%02d: %s", i, dcToStr(&(pluc_lut_list[lut].pi), input, " ", ""));
     
     /*
     result >>= 1;
@@ -1754,17 +1754,37 @@ uint32_t pluc_get_lut_config_value(int lut)
     
     dcInc(&(pluc_lut_list[lut].pi), input);
   }
-  pluc_log("LUT%d config value %08x, incnt=%d, bitcnt=%d", lut, result, bit_cnt, in_cnt);
+  //pluc_log("LUT%d config value %08x, incnt=%d, bitcnt=%d", lut, result, bit_cnt, in_cnt);
   return result;
 }
 
 void pluc_out_lut_config_value(int lut)
 {
   static char s[1024];
-  
+  uint32_t config_value;
+    
   sprintf(s, "\t/* LUT %d Config Value */\n", lut);
   pluc_out(s);
-  sprintf(s, "\t*(uint32_t *)0x%08x = 0x%08xUL; /*PLU*/\n", 0x40028000+0x800+lut*4, pluc_get_lut_config_value(lut));
+  
+  
+  {
+    int i, cnt = dclCnt(pluc_lut_list[lut].dcl);
+    
+    sprintf(s, "\t/* %s|", b_sl_ToStr(pluc_lut_list[lut].pi.in_sl, " "));
+    sprintf(s+strlen(s), "%s */\n", b_sl_ToStr(pluc_lut_list[lut].pi.out_sl, " "));
+    pluc_out(s);
+    
+    for( i = 0; i < cnt; i++ )
+    {
+      sprintf(s, "\t/* %s */\n", dcToStr(&(pluc_lut_list[lut].pi), dclGet(pluc_lut_list[lut].dcl, i), "|", ""));
+      pluc_out(s);
+    }
+  }
+  
+  
+  config_value = pluc_get_lut_config_value(lut);
+  
+  sprintf(s, "\t*(uint32_t *)0x%08x = 0x%08xUL; /*PLU*/\n", 0x40028000+0x800+lut*4, config_value);
   pluc_out(s);
   
 }

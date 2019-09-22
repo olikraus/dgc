@@ -60,4 +60,7 @@ int b_sl_ImportByStr(b_sl_type b_sl, const char *s, const char *delim, const cha
 
 int b_sl_ExportToFP(b_sl_type b_sl, FILE *fp, const char *delim, const char *last);
 
+const char *b_sl_ToStr(b_sl_type b_sl, const char *delim);
+
+
 #endif /* _B_SL_H */
