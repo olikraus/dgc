@@ -609,6 +609,12 @@ int pluc_check_signal(const char *s)
   int distance_curr;
   int i;
   
+  if ( strncmp(s, fsm_state_out_signal, strlen(fsm_state_out_signal)) == 0 )
+    return 1;
+
+  if ( strncmp(s, fsm_state_in_signal, strlen(fsm_state_in_signal)) == 0 )
+    return 1;
+  
   for( i = 0; i < b_sl_GetCnt(pluc_keywords); i++ )
   {
     if ( strcmp(b_sl_GetVal(pluc_keywords, i), s) == 0 )
@@ -705,7 +711,20 @@ int pluc_read_file(const char *filename)
       fsm_Import(fsm, filename);
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
-      pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
+      pluc_log("Read (KISS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
+      //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
+      pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
+      //dclShow(&pi, cl_on);
+      
+    }
+    else if ( pluc_is_extension(filename, ".bms") != 0 )
+    {
+      fsm_Clear(fsm);
+
+      fsm_Import(fsm, filename);
+      pluc_build_fsm();
+      //dclShow(fsm->pi_machine, fsm->cl_machine);
+      pluc_log("Read (BMS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
       //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
       //dclShow(&pi, cl_on);
@@ -1362,7 +1381,7 @@ int pluc_route_external_connected_luts(void)
 {
   int i;
   const char *s;
-  pluc_log("Route: LUTs with external signals", pluc_lut_cnt);
+  pluc_log("Route: LUTs with external signals (LUT cnt=%d)", pluc_lut_cnt);
   for( i = 0; i < pluc_lut_cnt; i++ )
   {
     if ( pluc_lut_list[i].is_placed == 0 )
@@ -1371,8 +1390,7 @@ int pluc_route_external_connected_luts(void)
       if ( s != NULL )
       {
 	if ( s[0] != '.' )
-	{
-	  
+	{	  
 	  if ( strcmp( pluc_get_lut_output_name(i), pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) ) != 0 )
 	  {
 	    if ( pluc_calc_from_to(pluc_get_lut_output_name(i), pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) ) != 0 )
@@ -1380,33 +1398,39 @@ int pluc_route_external_connected_luts(void)
 	      
 	      pluc_log("Route: Path found from LUT%d to %s ", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
 	      /* TODO: We must search from LUT i to output pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0) */
-	      
-	      
 	      //if ( pluc_calc_route_chain(s, 0) == 0 )	// WRONG function call
 	      //{
 	      //  pluc_err("No route found from '%s' to any LUT", s);
 	      //  return 0;
 	      //}
 	      pluc_mark_route_chain_wire_list();		/* route found.. mark it! */
-	      
 	      //if ( pluc_lut_list[i].user_out_name != NULL )
 	      //  free(pluc_lut_list[i].user_out_name);
 	      //pluc_lut_list[i].user_out_name = strdup(s);
 	      //if ( pluc_lut_list[i].user_out_name == NULL )
 	      //  return pluc_err("memory error"), 0;
-	      
-	      
 	      //pluc_log("Output '%s' connected to LUT%d", pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0), i);
-	      
-	      
 	      pluc_lut_list[i].is_placed = 1;			/* mark the LUT as done */
+	      pluc_log("Route: LUT%d marked as placed", i);
 	    }
 	    else
 	    {
 	      pluc_err("Route: No route found from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
 	    }
 	  } // LUT output is identical to LUT name
+	  else
+	  {
+	    /* routing will be done via the input, but still the placement flag has to be set */
+	    pluc_lut_list[i].is_placed = 1;			/* mark the LUT as done */
+	      pluc_log("Route: Sub-LUT%d marked as placed", i);
+	    
+	    //pluc_log("identical names for lut and output %s", pluc_get_lut_output_name(i));
+	  }
 	} // external connection
+	else
+	{
+	  //pluc_log("internal LUT with output %s", s);
+	}
       } // s != NULL
     } // is_placed == 0
   }
