@@ -711,6 +711,15 @@ int pluc_read_file(const char *filename)
       //dclShow(&pi, cl_on);
       
     }
+    else if ( pluc_is_extension(filename, ".bex") != 0 )
+    {
+      if ( dclReadBEX(&pi2, cl2_on, cl2_dc, filename) == 0 )    /* dcex.c */
+      {
+	pluc_err("Read: Error with file '%s'", filename);
+	return 0;
+      }
+      pinfoMerge(&pi, cl_on, &pi2, cl2_on);      
+    }
     else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
     {
       /* combine both functions, consider the case where the output of cl2 is input of cl */
@@ -718,7 +727,7 @@ int pluc_read_file(const char *filename)
     }
     else
     {
-      pluc_err("Import pluc_error with file %s", filename);
+      pluc_err("Read: Error with file/expression '%s'.", filename);
       return 0;
     }
     

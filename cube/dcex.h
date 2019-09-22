@@ -102,7 +102,8 @@ struct _dcexstr_struct
   unsigned is_visited:1;
   unsigned is_positiv:1;
   unsigned is_negativ:1;
-  int cube_var_index;
+  int cube_in_var_index;		/* 2019: renamed from cube_var_index to cube_in_var_index */
+  int cube_out_var_index;		/* 2019: new var */
 };
 
 struct _dcexnode_struct

@@ -22,7 +22,7 @@
 
 
   
-  dcube expressions
+  dcube expressions (file extension ".bex")
 
 
   a == 1     (a & b) | c 
@@ -91,7 +91,8 @@ dcexstr dcexstrOpen(const char *str)
     s->is_visited = 0;
     s->is_positiv = 0;
     s->is_negativ = 0;
-    s->cube_var_index = 0;
+    s->cube_in_var_index = -1;		/* 2019: hmmm... default value should be -1 instead of 0 */
+    s->cube_out_var_index = -1;
     return s;
   }
   return NULL;
@@ -189,7 +190,7 @@ dcex_type dcexOpen()
     dcex->id_set = b_set_Open();
     dcex->error_data = NULL;
     dcex->error_fn = dcex_default_error_fn;
-    dcex->error_prefix = strdup("");
+    dcex->error_prefix = strdup("BEX Import: ");
     if ( dcex->error_prefix != NULL )
     {
       if ( dcexInit(dcex) != 0 )
@@ -267,6 +268,7 @@ static int dcexGetStrRef(dcex_type dcex, char *str)
   return ref;
 }
 
+/* 2019: called from gnetdcex.c, probably we should pass another var telling whether the variable is input or output */
 int dcexSetStrRef(dcex_type dcex, int ref, int var_index, const char *str)
 {
   dcexstr s;
@@ -278,7 +280,10 @@ int dcexSetStrRef(dcex_type dcex, int ref, int var_index, const char *str)
   s = dcexstrOpen(str);
   if ( s == NULL )
     return 0;
-  s->cube_var_index = var_index;
+  
+  /* 2019: until we know, what variable this is, the index is assigned to both in and out */
+  s->cube_in_var_index = var_index;
+  s->cube_out_var_index = var_index;
   if ( b_set_Set(dcex->id_set, ref, s) == 0 )
     return dcexstrClose(s), 0;
   if ( b_rdic_Ins(dcex->id_index, ref, str) == 0 )
@@ -480,7 +485,7 @@ static dcexn dcexAtom(dcex_type dcex)
   }
   if ( *(dcex->s) == '0' || *(dcex->s) == '1' )
     return dcexNewCharSymNode(dcex);
-  dcexError(dcex, "%sUnknown symbol.", dcex->error_prefix);
+  dcexError(dcex, "%sUnknown symbol '%c'.", dcex->error_prefix, *(dcex->s));
   return NULL;
 }
 
@@ -581,6 +586,7 @@ static dcexn dcexAssignmentListParser(dcex_type dcex)
   if ( op->down == NULL )
     return dcexnClose(op), (dcexn)NULL;
   n = op->down;
+  dcexSkipSpace(dcex);
   for(;;)
   {
     if ( *dcex->s != ';' )
@@ -593,6 +599,19 @@ static dcexn dcexAssignmentListParser(dcex_type dcex)
     if ( n->next == NULL )
       return dcexnClose(op), (dcexn)NULL;
     n = n->next;
+  }
+  if ( *dcex->s != '\0' )
+  {
+    dcexReadIdentifier(dcex);
+    if ( dcex->identifer[0] != '\0' )
+    {
+      dcexError(dcex, "%sUnexpected '%s' (missing operand or missing ';'?).", dcex->error_prefix, dcex->identifer);
+      dcexnClose(op);
+      return (dcexn)NULL;
+    }
+    dcexError(dcex, "%sUnexpected '%c' (unknown operand?).", dcex->error_prefix, *(dcex->s));
+    dcexnClose(op);
+    return (dcexn)NULL;
   }
   return op;
 }
@@ -654,14 +673,14 @@ int dcexEvalInput(dcex_type dcex, dcexn n)
   assert( n->data >= DCEXN_STR_OFFSET );
   
   xs = dcexGetDCEXSTR(dcex, n->data-DCEXN_STR_OFFSET);
-  if ( xs->cube_var_index < 0 )
+  if ( xs->cube_in_var_index < 0 )
   {
     dcexError(dcex, "%sInput variable '%s' no legal source.", dcex->error_prefix, xs->str);
     return 0;
   }
   
   v = 0;
-  if ( dcGetIn(dcex->input_cube, xs->cube_var_index) == 2 )
+  if ( dcGetIn(dcex->input_cube, xs->cube_in_var_index) == 2 )
     v = 1;
       
   return v;
@@ -729,15 +748,15 @@ int dcexEvalAssign(dcex_type dcex, dcexn first, int (*eval_fn)(dcex_type dcex, d
   {
     dcexstr xs;
     xs = dcexGetDCEXSTR(dcex, first->data-DCEXN_STR_OFFSET);
-    if ( xs->cube_var_index < 0 )
+    if ( xs->cube_out_var_index < 0 )
     {
       dcexError(dcex, "%sThe left side (%s) of the assignment has no legal target.", dcex->error_prefix, xs->str);
       return 0;
     }
     if ( v == 0 )
-      dcSetOut( dcex->assignment_cube, xs->cube_var_index, 0);
+      dcSetOut( dcex->assignment_cube, xs->cube_out_var_index, 0);
     else
-      dcSetOut( dcex->assignment_cube, xs->cube_var_index, 1);
+      dcSetOut( dcex->assignment_cube, xs->cube_out_var_index, 1);
   }
   return v;
 }
@@ -861,16 +880,63 @@ static int dcexSubAssignCubeVarReference(dcex_type dcex, dcexn n)
       dcexError(dcex, "%sSyntax tree not marked (internal error).", dcex->error_prefix);
       return 0;
     }
-    xs->cube_var_index = dcex_sl_find_str(sl, xs->str);
-    if ( xs->cube_var_index < 0 )
+    
+    /* START 2019: try to support inout vars better */
+    if ( sl == dcex->inout_variables )
     {
-      xs->cube_var_index = b_sl_Add(sl, xs->str);
-      if ( xs->cube_var_index < 0 )
+      
+      xs->cube_out_var_index = dcex_sl_find_str(dcex->out_variables, xs->str);
+      if ( xs->cube_out_var_index < 0 )
       {
-        dcexError(dcex, "%sOut of memory (b_sl_Add).", dcex->error_prefix);
-        return 0;
+	xs->cube_out_var_index = b_sl_Add(dcex->out_variables, xs->str);
+	if ( xs->cube_out_var_index < 0 )
+	{
+	  dcexError(dcex, "%sOut of memory (b_sl_Add).", dcex->error_prefix);
+	  return 0;
+	}
       }
+
+      xs->cube_in_var_index = dcex_sl_find_str(dcex->inout_variables, xs->str);
+      if ( xs->cube_in_var_index < 0 )
+      {
+	xs->cube_in_var_index = b_sl_Add(dcex->inout_variables, xs->str);
+	if ( xs->cube_in_var_index < 0 )
+	{
+	  dcexError(dcex, "%sOut of memory (b_sl_Add).", dcex->error_prefix);
+	  return 0;
+	}
+      }
+
+      /* finally, add it to the in variables, keep the index for the in variables */
+      xs->cube_in_var_index = dcex_sl_find_str(dcex->in_variables, xs->str);
+      if ( xs->cube_in_var_index < 0 )
+      {
+	xs->cube_in_var_index = b_sl_Add(dcex->in_variables, xs->str);
+	if ( xs->cube_in_var_index < 0 )
+	{
+	  dcexError(dcex, "%sOut of memory (b_sl_Add).", dcex->error_prefix);
+	  return 0;
+	}
+      }
+      
     }
+    else    
+    {
+      /* 2019: we could assign the index to the individual in or out var index */
+      /* as of now, the index is assigned to both */
+      xs->cube_in_var_index = dcex_sl_find_str(sl, xs->str);
+      if ( xs->cube_in_var_index < 0 )
+      {
+	xs->cube_in_var_index = b_sl_Add(sl, xs->str);
+	if ( xs->cube_in_var_index < 0 )
+	{
+	  dcexError(dcex, "%sOut of memory (b_sl_Add).", dcex->error_prefix);
+	  return 0;
+	}
+      }
+      xs->cube_out_var_index = xs->cube_in_var_index;	/* might be wrong, but let's see.. */
+    }    
+    
   }
 
   if ( dcexSubAssignCubeVarReference(dcex, n->down) == 0 )
@@ -1146,8 +1212,8 @@ int dcexResetCube(dcex_type dcex, pinfo *pi, dcube *c, dcexn n, int is_posneg)
       {
         if ( xs->is_positiv != 0 && xs->is_negativ != 0 )
         {
-          dcSetIn(c, xs->cube_var_index, 1);
-          if ( b_il_Add(dcex->pn_vars, xs->cube_var_index) < 0 )
+          dcSetIn(c, xs->cube_in_var_index, 1);
+          if ( b_il_Add(dcex->pn_vars, xs->cube_in_var_index) < 0 )
           {
             dcexError(dcex, "%sOut of memory (b_il_Add).", dcex->error_prefix);
             return 0;
@@ -1156,15 +1222,15 @@ int dcexResetCube(dcex_type dcex, pinfo *pi, dcube *c, dcexn n, int is_posneg)
         else
         {
           if ( xs->is_positiv == 0 )
-            dcSetIn(c, xs->cube_var_index, 1);
+            dcSetIn(c, xs->cube_in_var_index, 1);
           else
-            dcSetIn(c, xs->cube_var_index, 2);
+            dcSetIn(c, xs->cube_in_var_index, 2);
         }
       }
       else
       {
-        dcSetIn(c, xs->cube_var_index, 1);
-        if ( b_il_Add(dcex->pn_vars, xs->cube_var_index) < 0 )
+        dcSetIn(c, xs->cube_in_var_index, 1);
+        if ( b_il_Add(dcex->pn_vars, xs->cube_in_var_index) < 0 )
         {
           dcexError(dcex, "%sOut of memory (b_il_Add).", dcex->error_prefix);
           return 0;
@@ -1335,12 +1401,16 @@ int dclReadBEXStr(pinfo *pi, dclist cl_on, dclist cl_dc, const char *content)
   
   if ( n == NULL )
     return dcexClose(dcex), 0;
-    
+
+  /* 2019: This block is now removed and bex format partly supports in and out variables. */
+  /* For backward compatibility the following block could be uncommented. */
+/*  
   if ( b_sl_GetCnt(dcex->inout_variables) != 0 )
   {
     dcexError(dcex, "%sVariable used as input and output.", dcex->error_prefix);
     return 0;
   }
+*/
 
   n = dcexReduceNot(dcex, n);
   if ( n == NULL )

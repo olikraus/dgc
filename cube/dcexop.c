@@ -322,7 +322,7 @@ static int _dcexToDCL_assign(dcex_type dcex, dcexn n, dclist cl)
     return 0;
   }
   xs = dcexGetDCEXSTR(dcex, n->data-DCEXN_STR_OFFSET);
-  if ( xs->cube_var_index < 0 )
+  if ( xs->cube_out_var_index < 0 )
   {
     dcexError(dcex, "%sThe left side (%s) of the assignment has no legal target.", dcex->error_prefix, xs->str);
     return 0;
@@ -334,7 +334,7 @@ static int _dcexToDCL_assign(dcex_type dcex, dcexn n, dclist cl)
   for( i = 0; i < cnt; i++ )
   {
     dcOutSetAll(dcex->pi_to_dcl, dclGet(cl, i), 0);
-    dcSetOut(dclGet(cl, i), xs->cube_var_index, 1);
+    dcSetOut(dclGet(cl, i), xs->cube_out_var_index, 1);
   }
   
   return 1;
@@ -390,9 +390,10 @@ static int _dcexToDCL(dcex_type dcex, dcexn n, dclist cl)
         dcexstr xs;
         int pos;
         xs = dcexGetDCEXSTR(dcex, n->data-DCEXN_STR_OFFSET);
-        if ( xs->cube_var_index < 0 )
+        if ( xs->cube_in_var_index < 0 )
         {
-          dcexError(dcex, "%sThe left side (%s) of the assignment has no legal target.", dcex->error_prefix, xs->str);
+	  /* 2019: is this the correct error message???? */
+          dcexError(dcex, "%sThe left [?] side (%s) of the assignment has no legal target.", dcex->error_prefix, xs->str);
           return 0;
         }
         dclClear(cl);
@@ -404,7 +405,7 @@ static int _dcexToDCL(dcex_type dcex, dcexn n, dclist cl)
         }
         dcInSetAll(dcex->pi_to_dcl, dclGet(cl, pos), CUBE_IN_MASK_DC);
         dcOutSetAll(dcex->pi_to_dcl, dclGet(cl, pos), CUBE_OUT_MASK);
-        dcSetIn(dclGet(cl, pos), xs->cube_var_index, 2);
+        dcSetIn(dclGet(cl, pos), xs->cube_in_var_index, 2);
         return 1;
       }
       else

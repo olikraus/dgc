@@ -325,7 +325,7 @@ static int gnc_build_dcex_str_refs(gnc nc, int cell_ref, dcex_type dcex)
       sprintf(s, GPORT_IN_PREFIX "%d", i);
       t = s;
     }
-    if ( dcexSetStrRef(dcex, i, i, t) == 0 )
+    if ( dcexSetStrRef(dcex, i, i, t) == 0 )		/* TODO: tell dcexSetStrRef about input type */
       return 0;
     if ( b_sl_Set(dcex->in_variables, i, t) == 0 )
       return 0;
@@ -339,7 +339,7 @@ static int gnc_build_dcex_str_refs(gnc nc, int cell_ref, dcex_type dcex)
       sprintf(s, GPORT_OUT_PREFIX "%d", i);
       t = s;
     }
-    if ( dcexSetStrRef(dcex, cell->pi->in_cnt + i, i, t) == 0 )
+    if ( dcexSetStrRef(dcex, cell->pi->in_cnt + i, i, t) == 0 )	/* TODO: tell dcexSetStrRef about output type */
       return 0;
     if ( b_sl_Set(dcex->out_variables, i, t) == 0 )
       return 0;
