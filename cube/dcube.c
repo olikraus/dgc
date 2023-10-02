@@ -2171,6 +2171,7 @@ int dclInvertOutMatrix(pinfo *dest_pi, dclist dest_cl, pinfo *src_pi, dclist src
 
 /*-- dclReadFP --------------------------------------------------------------*/
 
+/* the following value depends on CUBE_IN_SIGNALS */
 #define DCL_LINE_LEN (1024*32)
 
 int dclReadFP(pinfo *pi, dclist cl, FILE *fp)

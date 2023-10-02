@@ -56,6 +56,7 @@ cl_entry_struct cl_list[] =
   { CL_TYP_SET,     "info-Information about a file", &command, 4 },
   { CL_TYP_SET,     "dcexpand-Expand don't cares", &command, 5 },
   { CL_TYP_SET,     "merge-Merge two files", &command, 6 },
+  { CL_TYP_SET,     "is-Intersect two files", &command, 7 },
   { CL_TYP_GROUP,   "Additional options", NULL, 0 },
   { CL_TYP_ON,      "greedy-use heuristic cover algorithm", &greedy,  0 },
   { CL_TYP_ON,      "literal-weight function is 'number of literals'", &is_literal,  0 },
@@ -131,6 +132,9 @@ int doall(void)
   {
     case -1:
       break;
+    
+    /*===== Minimize =====*/
+    
     case 0:
       if ( is_bcp == 0 )
       {
@@ -155,6 +159,9 @@ int doall(void)
         }
       }
       break;
+
+    /*===== Prime Calculation =====*/
+      
     case 1:
       if ( dclPrimesDC(&pi, cl_on, cl_dc) == 0 )
       {
@@ -162,6 +169,9 @@ int doall(void)
         return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), 0;
       }
       break;
+
+    /*===== Compare =====*/
+      
     case 2:
       if ( dclCnt(cl_dc) != 0 || dclCnt(cl2_dc) != 0 )
       {
@@ -185,6 +195,9 @@ int doall(void)
         exit(1);
       }
       break;
+
+    /*===== Subtract =====*/
+      
     case 3:
       if ( dclCnt(cl_dc) != 0 || dclCnt(cl2_dc) != 0 )
       {
@@ -197,11 +210,17 @@ int doall(void)
         return 0;
       }
       break;
+      
+    /*===== Info =====*/
+      
     case 4:
       printf("SOP format:\n");
       printf("  Cubes:    %d\n", dclCnt(cl_on));
       printf("  Literals: %d\n", dclGetLiteralCnt(&pi, cl_on));
       break;
+    
+    /*===== DC Expand =====*/
+    
     case 5:
       if ( dclCnt(cl_dc) != 0  )
       {
@@ -210,6 +229,9 @@ int doall(void)
       }
       dclDontCareExpand(&pi, cl_on);
       break;
+
+    /*===== Merge =====*/
+      
     case 6:
       if ( pinfoMerge(&pi, cl_on, &pi2, cl2_on) == 0 )
       {
@@ -217,11 +239,35 @@ int doall(void)
         dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc);
         return 0;
       }
+      puts("Merge done.");
       
       pinfoCntDCList(&pi, cl_on, &(pi.tmp[0]));
       printf("none DC in var count: %d\n", pinfoGetNoneDCInVarCnt(&pi));
       
       break;
+
+    /*===== Intersection =====*/
+      
+    case 7:
+      if ( dclCnt(cl_dc) != 0 || dclCnt(cl2_dc) != 0 )
+      {
+        puts("error: can not subtract problems with don't cares.");
+        return dclDestroyVA(4, cl_on, cl_dc, cl2_on, cl2_dc), pinfoDestroy(&pi), 0;
+      }
+      {
+        dclist tmp;
+        dclInit(&tmp);
+        dclCopy(&pi, tmp, cl_on);
+        dclClear(cl_on);
+        if ( dclIntersectionList(&pi, cl_on, tmp, cl2_on) == 0 )
+        {
+          dclDestroyVA(5, cl_on, cl_dc, cl2_on, cl2_dc, tmp);
+          return 0;
+        }
+     }
+      break;
+      
+      
     default:
       if ( fn_cube_str[0] != '\0' )
       {
