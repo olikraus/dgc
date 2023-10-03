@@ -25,20 +25,209 @@
   
   
   Error Codes
-  101   JSON error
+  0             all ok
+  101   JSON parse error
   102   Memory allocation failed
   103   File IO
   104   File not found (fopen failed)
+  105   SOP JSON grammer error
+  106   PLA Parser failed
+  
+{
+  inCnt: 99,
+  outCnt: 1,
+  plaReference: "str",
+  plaInputList: [ ],
+  
+  plaIntersectionList: [ ],
+  cmpInputList[ { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"} ] 
+  plaInputUnion: "str",
+  cmpInputUnion: { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"};
+}
+  
 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <cJSON.h>
 #include "dcube.h"
 #include "config.h"
 
-int sopjsonstring(const char *s)
+/*===================================================================*/
+/* global variables */
+
+
+pinfo pi;       // global problem info from JSON
+dclist dcl_read;
+
+/*===================================================================*/
+/* util functions */
+
+void p(const char *fmt, ...)
 {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+  va_end(ap);
+}
+
+/*===================================================================*/
+/* dcl load */
+
+/*
+  read a JSON pla object into "pi_read" and "dcl_read" objects
+
+  This function will ensure that the pla has a fitting problem information
+
+  returns error code:
+    0: all ok
+
+*/
+int sop_json_dcl_read(cJSON *pla)
+{
+  dcube *c_on = &(pi.tmp[3]);
+  dcube *c_dc = &(pi.tmp[4]);
+  char *s;
+  cJSON *line;
+  
+  if ( dcl_read != NULL )
+    dclRealClear(dcl_read);
+  //if ( cl_dc != NULL )
+  //  dclRealClear(cl_dc);
+  
+  
+  if ( pla == NULL )
+  {
+    p("Error: PLA is NULL\n");
+    return 105;
+  }
+  
+  if ( cJSON_IsArray(pla) == 0 )
+  {
+    p("Error: PLA is not an array\n");
+    return 105;
+  }
+  
+  cJSON_ArrayForEach(line, pla)
+  {
+    if ( cJSON_IsString(line) == 0 )
+    {
+      p("Error: PLA line is not a string\n");
+      return 105;
+    }
+    s = cJSON_GetStringValue(line);
+    
+    if ( dcSetAllByStr(&pi, pi.in_cnt, pi.out_cnt, c_on, c_dc, s) == 0 )
+    {
+      p("Error: PLA line '%s' syntax error (in=%d, out=%d)\n", s, pi.in_cnt, pi.out_cnt);
+      return 106;    
+    }
+    if ( dcl_read != NULL )
+      if ( dcIsOutIllegal(&pi, c_on) == 0 )
+        if ( dclAdd(&pi, dcl_read, c_on) < 0 )
+        {
+          p("Error: PLA line memory allocation error (line '%s')\n", s);
+          return 102;
+        }    
+  }
+  
+  return 0;
+}
+
+
+
+
+/*===================================================================*/
+/* setup */
+
+int sop_json_init(cJSON *json)
+{
+  int in, out;
+  cJSON *o;
+  if ( cJSON_IsObject(json) == 0 )
+  {
+    p("Error: JSON root object is not an object\n");
+    return 105;
+  }
+  
+  /* inCnt */
+  
+  o = cJSON_GetObjectItemCaseSensitive(json, "inCnt");
+  if ( o == NULL )
+  {
+    p("Error: JSON member 'inCnt' is missing\n");
+    return 105;    
+  }
+  if ( cJSON_IsNumber(o) == 0 )
+  {
+    p("Error: JSON member 'inCnt' exists, but is not a number\n");
+    return 105;    
+  }
+  in  = (int)cJSON_GetNumberValue(o);
+
+  /* outCnt */
+  
+  o = cJSON_GetObjectItemCaseSensitive(json, "outCnt");
+  if ( o == NULL )
+  {
+    p("Error: JSON member 'outCnt' is missing\n");
+    return 105;    
+  }
+  if ( cJSON_IsNumber(o) == 0 )
+  {
+    p("Error: JSON member 'outCnt' exists, but is not a number\n");
+    return 105;    
+  }
+  out  = (int)cJSON_GetNumberValue(o);
+  
+  pinfoInitInOut(&pi, in, out);
+  
+  if ( dclInitVA(1, &dcl_read) == 0 )
+    return 102;
+
+  
+  return 0;
+}
+
+/*===================================================================*/
+/* execution */
+
+int sop_json_input_union(cJSON *json)
+{
+  int code;
+  cJSON *list;
+  cJSON *e;
+  
+  list = cJSON_GetObjectItemCaseSensitive(json, "plaInputList");
+  if ( list == NULL )
+  {
+    p("Error: JSON member 'plaInputList' is missing\n");
+    return 105;    
+  }
+  
+  if ( cJSON_IsArray(list) == 0 )
+  {
+    p("Error: JSON member 'plaInputList' exits, but is not an array\n");
+    return 105;    
+  }
+  
+  cJSON_ArrayForEach(e, list)
+  {
+    code = sop_json_dcl_read(e);
+    if ( code > 0 ) return code;
+    dclShow(&pi, dcl_read);
+  }
+  
+  return 0;
+}
+
+/*===================================================================*/
+/* main */
+
+int sop_json_string(const char *s)
+{
+  int code;
   cJSON *json = cJSON_Parse(s);
   if (json == NULL)
   {
@@ -49,16 +238,27 @@ int sopjsonstring(const char *s)
       }
       return 101;
   }
+  else
+  {
+    const char *s;
+    p("Info: JSON read success\n");
+    s = cJSON_Print(json);    
+    puts(s);
+  }
   
+  code = sop_json_init(json);
+  if ( code > 0 ) return code;
+  code = sop_json_input_union(json);
+  if ( code > 0 ) return code;
   return 0;
 }
 
-int sopjsonfile(const char *filename)
+int sop_json_file(const char *filename)
 {
   /* Source: https://stackoverflow.com/questions/2029103/correct-way-to-read-a-text-file-into-a-buffer-in-c */
   int error_code;
   char *source = NULL;
-  FILE *fp = fopen(filename, "r");
+  FILE *fp = fopen(filename, "r");  
   if (fp != NULL) 
   {
       /* Go to the end of the file. */
@@ -83,13 +283,15 @@ int sopjsonfile(const char *filename)
               } 
               else 
               {
+                p("Info: %ld bytes read from file %s\n", (unsigned long)(len), filename);
                 source[len] = '\0'; 
-                error_code = sopjsonstring(source);
+                error_code = sop_json_string(source);
               }
             } //fseek
             else
             {
               error_code = 103;
+              p("'fseek' failed for file %s\n", filename);
             }
             
             free(source); 
@@ -97,23 +299,26 @@ int sopjsonfile(const char *filename)
           else
           {
             error_code = 102;
+            p("Error: 'malloc(%ld)' failed for file %s\n", (unsigned long)(bufsize+1), filename);
           }
-          
         } // ftell
         else
         {
           error_code = 103;
+          p("Error: 'ftell' failed for file %s\n", filename);
         }
       } // fseek
       else
       {
         error_code = 103;
+        p("Error: Seek failed for file %s\n", filename);
       }
       fclose(fp);
   } // fopen 
   else
   {
     error_code = 104;
+    p("Error: File %s not found\n", filename);
   }
   return error_code;
 }
@@ -153,7 +358,7 @@ int main(int argc, char **argv)
     argv++;
   }
   
-  error_code = sopjsonfile(json_file_name);
+  error_code = sop_json_file(json_file_name);
   printf("error code = %d\n", error_code);
 }
 
