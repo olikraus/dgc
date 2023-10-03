@@ -6,18 +6,21 @@
 # gnet: only dgd_opt.h
 # gnet & syl only required for dgc
 
-CFLAGS = -g -Wall -ffunction-sections -fdata-sections -I. -Icube -Iutil -Iencoding -Ignet -Isyl -DMWC_DISABLE
+CFLAGS = -g -Wall -ffunction-sections -fdata-sections -I. -Icube -Iutil -Iencoding -Ignet -Isyl -Ijson -DMWC_DISABLE
 LDFLAGS = -Wl,--gc-sections
 
 
-SRC = $(shell ls cube/*.c) $(shell ls util/*.c) $(shell ls encoding/*.c) $(shell ls gnet/*.c) $(shell ls syl/*.c) 
+SRC = $(shell ls cube/*.c) $(shell ls util/*.c) $(shell ls encoding/*.c) $(shell ls gnet/*.c) $(shell ls syl/*.c) $(shell ls json/*.c) 
 
 OBJ = $(SRC:.c=.o)
 
-all: dgsop simfsm xbm2pla bms2kiss dgc dglc pluc
+all: dgsop sopjson simfsm xbm2pla bms2kiss dgc dglc pluc
 
 dgsop: $(OBJ) ./app/dgsop.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) ./app/dgsop.o -o dgsop -lm
+
+sopjson: $(OBJ) ./app/sopjson.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) ./app/sopjson.o -o sopjson -lm
 
 simfsm: $(OBJ) ./app/simfsm.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) ./app/simfsm.o -o simfsm -lm
