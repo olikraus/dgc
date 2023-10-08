@@ -59,7 +59,10 @@
 
 
 pinfo pi;       // global problem info from JSON
-dclist dcl_read;
+dclist dcl_read;        // used to read dcl from JSON file
+dclist dcl_input_list_union;       // union of the plaInputList array
+dclist dcl_input_reference;       // content from the plaReference member
+dclist dcl_tmp;                         // temporary dcl list
 
 /*===================================================================*/
 /* util functions */
@@ -80,8 +83,15 @@ void p(const char *fmt, ...)
 
   This function will ensure that the pla has a fitting problem information
 
+  Argument:
+    pla:        cJSON array
+
   returns error code:
     0: all ok
+
+  Note:
+    - Result will be read into the global "dcl_read" object.
+    - dclSCC() will be applied to "dcl_read"
 
 */
 int sop_json_dcl_read(cJSON *pla)
@@ -132,6 +142,8 @@ int sop_json_dcl_read(cJSON *pla)
         }    
   }
   
+  dclSCC(&pi, dcl_read);
+  
   return 0;
 }
 
@@ -181,9 +193,13 @@ int sop_json_init(cJSON *json)
   }
   out  = (int)cJSON_GetNumberValue(o);
   
+  /* create problem info structure */
+  
   pinfoInitInOut(&pi, in, out);
   
-  if ( dclInitVA(1, &dcl_read) == 0 )
+  /* setup initial cube list */
+  
+  if ( dclInitVA(4, &dcl_tmp, &dcl_read, &dcl_input_list_union, &dcl_input_reference) == 0 )
     return 102;
 
   
@@ -193,9 +209,17 @@ int sop_json_init(cJSON *json)
 /*===================================================================*/
 /* execution */
 
+/*
+  
+  Search for the "plaInputList" of the JSON and calculate the
+  union over all PLA inside the "plaInputList". Store the result
+  in global object "dcl_input_list_union".
+
+*/
 int sop_json_input_union(cJSON *json)
 {
   int code;
+  int cnt;
   cJSON *list;
   cJSON *e;
   
@@ -212,15 +236,82 @@ int sop_json_input_union(cJSON *json)
     return 105;    
   }
   
+  cnt = 0;
+  dclClear(dcl_input_list_union);
+  
+  cJSON_ArrayForEach(e, list)
+  {
+    p("Reading dcl %d\n", cnt);
+    code = sop_json_dcl_read(e);
+    if ( code > 0 ) return code;
+    dclShow(&pi, dcl_read);
+    
+    dclSCCUnion(&pi, dcl_input_list_union, dcl_read);
+    
+    ++cnt;
+  }
+
+  p("dcl_input_list_union:\n", cnt);
+  dclMinimize(&pi, dcl_input_list_union);
+  dclShow(&pi, dcl_input_list_union);
+  
+  return 0;
+}
+
+
+int sop_json_reference_intersection(cJSON *json)
+{
+  cJSON *list;
+  cJSON *reference;
+  cJSON *e;
+  int cnt = 0;
+  int code;
+  
+  list = cJSON_GetObjectItemCaseSensitive(json, "plaInputList");
+  if ( list == NULL )
+  {
+    p("Error: JSON member 'plaInputList' is missing\n");
+    return 105;    
+  }
+  
+  if ( cJSON_IsArray(list) == 0 )
+  {
+    p("Error: JSON member 'plaInputList' exits, but is not an array\n");
+    return 105;    
+  }
+
+  reference = cJSON_GetObjectItemCaseSensitive(json, "plaReference");
+  if ( reference == NULL )
+  {
+    p("Error: JSON member 'plaReference' is missing\n");
+    return 105;    
+  }
+  
+  if ( cJSON_IsArray(reference) == 0 )
+  {
+    p("Error: JSON member 'plaReference' exits, but is not an array\n");
+    return 105;    
+  }
+  
+  code = sop_json_dcl_read(reference);
+  if ( code > 0 ) return code;
+  
+  dclCopy(&pi, dcl_input_reference, dcl_read);
+  
   cJSON_ArrayForEach(e, list)
   {
     code = sop_json_dcl_read(e);
     if ( code > 0 ) return code;
-    dclShow(&pi, dcl_read);
+    
+    dclIntersectionList(&pi, dcl_tmp, dcl_input_reference, dcl_read);
+    p("intersection %d\n", cnt);
+    dclShow(&pi, dcl_tmp);
+    
+    ++cnt;
   }
   
-  return 0;
 }
+
 
 /*===================================================================*/
 /* main */
@@ -250,6 +341,10 @@ int sop_json_string(const char *s)
   if ( code > 0 ) return code;
   code = sop_json_input_union(json);
   if ( code > 0 ) return code;
+  
+  code = sop_json_reference_intersection(json);
+  if ( code > 0 ) return code;
+
   return 0;
 }
 
