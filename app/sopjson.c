@@ -32,7 +32,7 @@
   104   File not found (fopen failed)
   105   SOP JSON grammer error
   106   PLA Parser failed
-  
+  107   Internal error
 {
   inCnt: 99,
   outCnt: 1,
@@ -40,7 +40,7 @@
   plaInputList: [ ],
   
   plaIntersectionList: [ ],
-  cmpInputList[ { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"} ] 
+  cmpInputList[ { isRefSubSet:0, isRefSuperSet:0, isRefEqual:0, isRefOverlap:0, plaRefExt:"ref#In"} ] 
   plaInputUnion: "str",
   cmpInputUnion: { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"};
 }
@@ -151,7 +151,13 @@ int sop_json_dcl_read(cJSON *pla)
 
 
 /*===================================================================*/
-/* setup */
+/* 
+  setup 
+  - check & create problem info
+  - create global DCLs
+  - create output members in the JSON object
+
+*/
 
 int sop_json_init(cJSON *json)
 {
@@ -201,7 +207,21 @@ int sop_json_init(cJSON *json)
   
   if ( dclInitVA(4, &dcl_tmp, &dcl_read, &dcl_input_list_union, &dcl_input_reference) == 0 )
     return 102;
+  
+  /* create output elements in the cJSON structure */
 
+  o = cJSON_GetObjectItemCaseSensitive(json, "cmpInputList");
+  if ( o == NULL )
+  {
+    cJSON_AddArrayToObject(json, "cmpInputList");
+  }
+  else
+  {
+    p("Error: JSON member 'cmpInputList' exists in the input and can't be created.\n");
+    return 105;    
+  }
+  
+  
   
   return 0;
 }
@@ -264,8 +284,12 @@ int sop_json_reference_intersection(cJSON *json)
   cJSON *list;
   cJSON *reference;
   cJSON *e;
+  cJSON *cmp_input_list;
+  cJSON *result_object;
   int cnt = 0;
   int code;
+  int is_ref_subset;
+  int is_ref_superset;
   
   list = cJSON_GetObjectItemCaseSensitive(json, "plaInputList");
   if ( list == NULL )
@@ -293,23 +317,79 @@ int sop_json_reference_intersection(cJSON *json)
     return 105;    
   }
   
+  
+  cmp_input_list = cJSON_GetObjectItemCaseSensitive(json, "cmpInputList");
+  if ( list == NULL )
+  {
+    p("Internal error: JSON member 'cmpInputList' is missing\n");
+    return 107;
+  }
+  
+  if ( cJSON_IsArray(cmp_input_list) == 0 )
+  {
+    p("Internal error: JSON member 'cmpInputList' exits, but is not an array\n");
+    return 107;
+  }
+ 
+  /* get the reference DCL */
+  
   code = sop_json_dcl_read(reference);
   if ( code > 0 ) return code;
-  
   dclCopy(&pi, dcl_input_reference, dcl_read);
+  
+  /* clear the output array */
+  
+  while( cJSON_GetArraySize(cmp_input_list) > 0 )
+  {
+    cJSON_DeleteItemFromArray(cmp_input_list, 0);
+  }
+  
+  /* loop over the input list of DCLs */
   
   cJSON_ArrayForEach(e, list)
   {
+    /* read the PLA */
     code = sop_json_dcl_read(e);
     if ( code > 0 ) return code;
+        
+    /* create a result structure */
+    result_object = cJSON_CreateObject();
+    if ( result_object == NULL ) return 102;            // memory error
+    if ( !cJSON_AddItemToArray(cmp_input_list, result_object) ) return 102;
+
+    /* dclIsSubsetList: is the 3rd arg a subset of the 2nd arg  */
+    is_ref_subset = dclIsSubsetList(&pi, dcl_read, dcl_input_reference);
+    if ( is_ref_subset )
+      cJSON_AddTrueToObject(result_object, "isRefSubSet");
+    else
+      cJSON_AddFalseToObject(result_object, "isRefSubSet");
+
+    is_ref_superset = dclIsSubsetList(&pi, dcl_input_reference, dcl_read);
+    if ( is_ref_superset )
+      cJSON_AddTrueToObject(result_object, "isRefSuperSet");
+    else
+      cJSON_AddFalseToObject(result_object, "isRefSuperSet");
     
+    if ( is_ref_superset && is_ref_subset )
+      cJSON_AddTrueToObject(result_object, "isRefEqual");
+    else
+      cJSON_AddFalseToObject(result_object, "isRefEqual");
+      
+
+    /* intersection? */    
     dclIntersectionList(&pi, dcl_tmp, dcl_input_reference, dcl_read);
+    if ( dclCnt(dcl_tmp) != 0 )
+      cJSON_AddTrueToObject(result_object, "isRefOverlap");
+    else
+      cJSON_AddFalseToObject(result_object, "isRefOverlap");
+    
     p("intersection %d\n", cnt);
     dclShow(&pi, dcl_tmp);
     
     ++cnt;
   }
-  
+
+  return 0;
 }
 
 
@@ -344,6 +424,9 @@ int sop_json_string(const char *s)
   
   code = sop_json_reference_intersection(json);
   if ( code > 0 ) return code;
+
+      s = cJSON_Print(json);    
+    puts(s);
 
   return 0;
 }
