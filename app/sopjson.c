@@ -40,8 +40,8 @@
   plaInputList: [ ],
   
   plaIntersectionList: [ ],
-  cmpInputList[ { isRefSubSet:0, isRefSuperSet:0, isRefEqual:0, isRefOverlap:0, plaRefExt:"ref#In"} ] 
-  plaInputUnion: "str",
+  cmpOutputList[ { isRefSubSet:0, isRefSuperSet:0, isRefEqual:0, isRefOverlap:0, plaRefExt:"ref#In"} ] 
+  plaOuputUnion: "str",
   cmpInputUnion: { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"};
 }
   
@@ -238,14 +238,14 @@ int sop_json_init(cJSON *json)
   
   /* create output elements in the cJSON structure */
 
-  o = cJSON_GetObjectItemCaseSensitive(json, "cmpInputList");
+  o = cJSON_GetObjectItemCaseSensitive(json, "cmpOutputList");
   if ( o == NULL )
   {
-    cJSON_AddArrayToObject(json, "cmpInputList");
+    cJSON_AddArrayToObject(json, "cmpOutputList");
   }
   else
   {
-    p("Error: JSON member 'cmpInputList' exists in the input and can't be created.\n");
+    p("Error: JSON member 'cmpOutputList' exists in the input and can't be created.\n");
     return 105;    
   }
   
@@ -299,15 +299,78 @@ int sop_json_input_union(cJSON *json)
     ++cnt;
   }
 
-  p("dcl_input_list_union:\n", cnt);
   dclMinimize(&pi, dcl_input_list_union);
-  dclShow(&pi, dcl_input_list_union);
+  //p("dcl_input_list_union:\n", cnt);
+  //dclShow(&pi, dcl_input_list_union);
+
+  code = sop_json_add_dcl_to_object(json, "plaOuputUnion", dcl_input_list_union);
+  if ( code > 0 )
+    return code;
+
   
   return 0;
 }
 
-int sop_json_add_result(cJSON *result, dclist *ref, dclist *e)
+int sop_json_add_result(cJSON *result, dclist ref, dclist e)
 {
+  int code;
+  int is_ref_subset;
+  int is_ref_superset;
+  
+  if ( dclCopy(&pi, dcl_a, ref) == 0 ) return 102; // memory error    
+  if ( dclCopy(&pi, dcl_b, e) == 0 ) return 102; // memory error
+  if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
+  
+  is_ref_subset = dclCnt(dcl_a) == 0 ? 1 : 0;
+  
+  /* dclIsSubsetList: is the 3rd arg a subset of the 2nd arg  */
+  /* is_ref_subset = dclIsSubsetList(&pi, dcl_read, dcl_input_reference); */
+  if ( is_ref_subset )
+    cJSON_AddTrueToObject(result, "isRefSubSet");
+  else
+    cJSON_AddFalseToObject(result, "isRefSubSet");
+
+  code = sop_json_add_dcl_to_object(result, "subtractFromRef", dcl_a);
+  if ( code > 0 )
+    return code;
+  
+  
+  if ( dclCopy(&pi, dcl_a, e) == 0 ) return 102; // memory error
+  if ( dclCopy(&pi, dcl_b, ref) == 0 ) return 102; // memory error    
+  if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
+  
+  is_ref_superset = dclCnt(dcl_a) == 0 ? 1 : 0;
+  /* is_ref_superset = dclIsSubsetList(&pi, dcl_input_reference, dcl_read); */
+  if ( is_ref_superset )
+    cJSON_AddTrueToObject(result, "isRefSuperSet");
+  else
+    cJSON_AddFalseToObject(result, "isRefSuperSet");
+
+  code = sop_json_add_dcl_to_object(result, "reducedByRef", dcl_a);
+  if ( code > 0 )
+    return code;
+
+  
+  if ( is_ref_superset && is_ref_subset )
+    cJSON_AddTrueToObject(result, "isRefEqual");
+  else
+    cJSON_AddFalseToObject(result, "isRefEqual");
+    
+  /* intersection? */    
+  dclIntersectionList(&pi, dcl_tmp, ref, e);
+  if ( dclCnt(dcl_tmp) != 0 )
+    cJSON_AddTrueToObject(result, "isRefOverlap");
+  else
+    cJSON_AddFalseToObject(result, "isRefOverlap");
+
+  code = sop_json_add_dcl_to_object(result, "refIntersection", dcl_tmp);
+  if ( code > 0 )
+    return code;
+  
+  //p("intersection %d\n", cnt);
+  //dclShow(&pi, dcl_tmp);
+  
+  return 0;
 }
 
 
@@ -316,12 +379,10 @@ int sop_json_reference_intersection(cJSON *json)
   cJSON *list;
   cJSON *reference;
   cJSON *e;
-  cJSON *cmp_input_list;
+  cJSON *cmp_output_list;
   cJSON *result_object;
   int cnt = 0;
   int code;
-  int is_ref_subset;
-  int is_ref_superset;
   
   list = cJSON_GetObjectItemCaseSensitive(json, "plaInputList");
   if ( list == NULL )
@@ -350,16 +411,16 @@ int sop_json_reference_intersection(cJSON *json)
   }
   
   
-  cmp_input_list = cJSON_GetObjectItemCaseSensitive(json, "cmpInputList");
+  cmp_output_list = cJSON_GetObjectItemCaseSensitive(json, "cmpOutputList");
   if ( list == NULL )
   {
-    p("Internal error: JSON member 'cmpInputList' is missing\n");
+    p("Internal error: JSON member 'cmpOutputList' is missing\n");
     return 107;
   }
   
-  if ( cJSON_IsArray(cmp_input_list) == 0 )
+  if ( cJSON_IsArray(cmp_output_list) == 0 )
   {
-    p("Internal error: JSON member 'cmpInputList' exits, but is not an array\n");
+    p("Internal error: JSON member 'cmpOutputList' exits, but is not an array\n");
     return 107;
   }
  
@@ -371,9 +432,9 @@ int sop_json_reference_intersection(cJSON *json)
   
   /* clear the output array */
   
-  while( cJSON_GetArraySize(cmp_input_list) > 0 )
+  while( cJSON_GetArraySize(cmp_output_list) > 0 )
   {
-    cJSON_DeleteItemFromArray(cmp_input_list, 0);
+    cJSON_DeleteItemFromArray(cmp_output_list, 0);
   }
   
   /* loop over the input list of DCLs */
@@ -387,63 +448,11 @@ int sop_json_reference_intersection(cJSON *json)
     /* create a result structure */
     result_object = cJSON_CreateObject();
     if ( result_object == NULL ) return 102;            // memory error
-    if ( !cJSON_AddItemToArray(cmp_input_list, result_object) ) return 102;
+    if ( !cJSON_AddItemToArray(cmp_output_list, result_object) ) return 102;
 
-    if ( dclCopy(&pi, dcl_a, dcl_input_reference) == 0 ) return 102; // memory error    
-    if ( dclCopy(&pi, dcl_b, dcl_read) == 0 ) return 102; // memory error
-    if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
-    
-    is_ref_subset = dclCnt(dcl_a) == 0 ? 1 : 0;
-    
-    /* dclIsSubsetList: is the 3rd arg a subset of the 2nd arg  */
-    /* is_ref_subset = dclIsSubsetList(&pi, dcl_read, dcl_input_reference); */
-    if ( is_ref_subset )
-      cJSON_AddTrueToObject(result_object, "isRefSubSet");
-    else
-      cJSON_AddFalseToObject(result_object, "isRefSubSet");
-
-    code = sop_json_add_dcl_to_object(result_object, "subtractFromRef", dcl_a);
-    if ( code > 0 )
-      return code;
-    
-    
-    if ( dclCopy(&pi, dcl_a, dcl_read) == 0 ) return 102; // memory error
-    if ( dclCopy(&pi, dcl_b, dcl_input_reference) == 0 ) return 102; // memory error    
-    if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
-    
-    is_ref_superset = dclCnt(dcl_a) == 0 ? 1 : 0;
-    /* is_ref_superset = dclIsSubsetList(&pi, dcl_input_reference, dcl_read); */
-    if ( is_ref_superset )
-      cJSON_AddTrueToObject(result_object, "isRefSuperSet");
-    else
-      cJSON_AddFalseToObject(result_object, "isRefSuperSet");
-
-    code = sop_json_add_dcl_to_object(result_object, "reducedByRef", dcl_a);
-    if ( code > 0 )
-      return code;
-
-    
-    if ( is_ref_superset && is_ref_subset )
-      cJSON_AddTrueToObject(result_object, "isRefEqual");
-    else
-      cJSON_AddFalseToObject(result_object, "isRefEqual");
-      
-
-    /* intersection? */    
-    dclIntersectionList(&pi, dcl_tmp, dcl_input_reference, dcl_read);
-    if ( dclCnt(dcl_tmp) != 0 )
-      cJSON_AddTrueToObject(result_object, "isRefOverlap");
-    else
-      cJSON_AddFalseToObject(result_object, "isRefOverlap");
-
-    code = sop_json_add_dcl_to_object(result_object, "refIntersection", dcl_tmp);
-    if ( code > 0 )
-      return code;
-
-    
-    
-    p("intersection %d\n", cnt);
-    dclShow(&pi, dcl_tmp);
+    /* do the actual calculation*/
+    code = sop_json_add_result(result_object, dcl_input_reference, dcl_read);
+    if ( code > 0 ) return code;
     
     ++cnt;
   }
