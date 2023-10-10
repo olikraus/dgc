@@ -63,6 +63,8 @@ dclist dcl_read;        // used to read dcl from JSON file
 dclist dcl_input_list_union;       // union of the plaInputList array
 dclist dcl_input_reference;       // content from the plaReference member
 dclist dcl_tmp;                         // temporary dcl list
+dclist dcl_a;                         // temporary dcl list
+dclist dcl_b;                         // temporary dcl list
 
 /*===================================================================*/
 /* util functions */
@@ -147,6 +149,32 @@ int sop_json_dcl_read(cJSON *pla)
   return 0;
 }
 
+int sop_json_dcl_write(cJSON *pla, dclist dcl)
+{
+  int i, cnt;
+  cJSON *cube;
+  if ( cJSON_IsArray(pla) == 0 )
+  {
+    p("Error: PLA is not an array\n");
+    return 107;  /* internal error */
+  }
+  cnt = dclCnt(dcl);
+  for( i = 0; i < cnt; i++ )
+  {
+    cube = cJSON_CreateString(dcToStr(&pi, dclGet(dcl, i), " ", ""));
+    if ( cube == NULL ) return 102; /* memory error */
+    if ( cJSON_AddItemToArray(pla, cube) == 0 ) return 102; /* memory error */      
+  }
+  return 0;
+}
+
+int sop_json_add_dcl_to_object(cJSON *obj, const char *name, dclist dcl)
+{
+  cJSON *pla = cJSON_CreateArray();
+  if ( pla == NULL ) return 102; /* memory error */
+  if ( cJSON_AddItemToObject(obj, name, pla) == 0 ) return 102; /* memory error */
+  return sop_json_dcl_write(pla, dcl);
+}
 
 
 
@@ -205,7 +233,7 @@ int sop_json_init(cJSON *json)
   
   /* setup initial cube list */
   
-  if ( dclInitVA(4, &dcl_tmp, &dcl_read, &dcl_input_list_union, &dcl_input_reference) == 0 )
+  if ( dclInitVA(6, &dcl_a, &dcl_b, &dcl_tmp, &dcl_read, &dcl_input_list_union, &dcl_input_reference) == 0 )
     return 102;
   
   /* create output elements in the cJSON structure */
@@ -276,6 +304,10 @@ int sop_json_input_union(cJSON *json)
   dclShow(&pi, dcl_input_list_union);
   
   return 0;
+}
+
+int sop_json_add_result(cJSON *result, dclist *ref, dclist *e)
+{
 }
 
 
@@ -357,18 +389,39 @@ int sop_json_reference_intersection(cJSON *json)
     if ( result_object == NULL ) return 102;            // memory error
     if ( !cJSON_AddItemToArray(cmp_input_list, result_object) ) return 102;
 
+    if ( dclCopy(&pi, dcl_a, dcl_input_reference) == 0 ) return 102; // memory error    
+    if ( dclCopy(&pi, dcl_b, dcl_read) == 0 ) return 102; // memory error
+    if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
+    
+    is_ref_subset = dclCnt(dcl_a) == 0 ? 1 : 0;
+    
     /* dclIsSubsetList: is the 3rd arg a subset of the 2nd arg  */
-    is_ref_subset = dclIsSubsetList(&pi, dcl_read, dcl_input_reference);
+    /* is_ref_subset = dclIsSubsetList(&pi, dcl_read, dcl_input_reference); */
     if ( is_ref_subset )
       cJSON_AddTrueToObject(result_object, "isRefSubSet");
     else
       cJSON_AddFalseToObject(result_object, "isRefSubSet");
 
-    is_ref_superset = dclIsSubsetList(&pi, dcl_input_reference, dcl_read);
+    code = sop_json_add_dcl_to_object(result_object, "subtractFromRef", dcl_a);
+    if ( code > 0 )
+      return code;
+    
+    
+    if ( dclCopy(&pi, dcl_a, dcl_read) == 0 ) return 102; // memory error
+    if ( dclCopy(&pi, dcl_b, dcl_input_reference) == 0 ) return 102; // memory error    
+    if ( dclSubtract(&pi, dcl_a, dcl_b) == 0 ) return 102; // memory error
+    
+    is_ref_superset = dclCnt(dcl_a) == 0 ? 1 : 0;
+    /* is_ref_superset = dclIsSubsetList(&pi, dcl_input_reference, dcl_read); */
     if ( is_ref_superset )
       cJSON_AddTrueToObject(result_object, "isRefSuperSet");
     else
       cJSON_AddFalseToObject(result_object, "isRefSuperSet");
+
+    code = sop_json_add_dcl_to_object(result_object, "reducedByRef", dcl_a);
+    if ( code > 0 )
+      return code;
+
     
     if ( is_ref_superset && is_ref_subset )
       cJSON_AddTrueToObject(result_object, "isRefEqual");
@@ -382,6 +435,12 @@ int sop_json_reference_intersection(cJSON *json)
       cJSON_AddTrueToObject(result_object, "isRefOverlap");
     else
       cJSON_AddFalseToObject(result_object, "isRefOverlap");
+
+    code = sop_json_add_dcl_to_object(result_object, "refIntersection", dcl_tmp);
+    if ( code > 0 )
+      return code;
+
+    
     
     p("intersection %d\n", cnt);
     dclShow(&pi, dcl_tmp);

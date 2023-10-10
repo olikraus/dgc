@@ -539,7 +539,7 @@ char *dcSetAllByStr(pinfo *pi, int in_cnt, int out_cnt, dcube *c_on, dcube *c_dc
 
 char *dcToStr(pinfo *pi, dcube *c, char *sep, char *post)
 {
-  static char s[1024*8];
+  static char s[CUBE_IN_SIGNALS+CUBE_SIGNALS_PER_OUT_WORD+1028*4];
   int i, l;
   for( i = 0; i < pi->in_cnt; i++ )
     s[i] = "x01-"[dcGetIn(c, i)];
