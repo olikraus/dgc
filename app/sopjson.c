@@ -33,17 +33,23 @@
   105   SOP JSON grammer error
   106   PLA Parser failed
   107   Internal error
-{
-  inCnt: 99,
-  outCnt: 1,
-  plaReference: "str",
-  plaInputList: [ ],
   
-  plaIntersectionList: [ ],
-  cmpOutputList[ { isRefSubSet:0, isRefSuperSet:0, isRefEqual:0, isRefOverlap:0, plaRefExt:"ref#In"} ] 
-  plaOuputUnion: "str",
-  cmpInputUnion: { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"};
-}
+  Notes:
+    - PLA data is stored as an array of strings. Each line (product term) is one string in the array.
+      plaReference may look like this:   "plaReference": ["0-00 1", "1-11 1"]
+    - 
+  
+  {
+    inCnt: 99,
+    outCnt: 1,
+    plaReference: [ "<product>", "<product>", ..., "<product>"] ,
+    plaInputList: [ [ "<product>", "<product>", ..., "<product>"] , ..., [ "<product>", "<product>", ..., "<product>"]   ],
+    
+    plaIntersectionList: [ ],
+    cmpOutputList[ { isRefSubSet:0, isRefSuperSet:0, isRefEqual:0, isRefOverlap:0, plaRefExt:"ref#In"} ] 
+    plaOuputUnion: "str",
+    cmpInputUnion: { isSubSet:0, isSuperSet:0, isEqual:0, isOverlap:0, plaRefExt:"ref#In"};
+  }
   
 */
 
@@ -263,6 +269,8 @@ int sop_json_init(cJSON *json)
   union over all PLA inside the "plaInputList". Store the result
   in global object "dcl_input_list_union".
 
+  Finally the result is stored in a new member "plaOuputUnion" for the json argmument.
+
 */
 int sop_json_input_union(cJSON *json)
 {
@@ -310,6 +318,26 @@ int sop_json_input_union(cJSON *json)
   
   return 0;
 }
+
+
+/*
+
+  Description:
+    Execute several operation between two PLA objects ("ref" and "e")
+    Store the result of those operations into the JSON object "result".
+    The following PLA results will be stored:
+      result:"subtractFromRef"  --> ref - e
+      result:"isRefSubSet"      --> true if "ref" is equal or a subset of "e"
+      result:"reducedByRef" --> e - ref
+      result:"isRefSuperSet" --> true if "e" is equal or a subset of "ref"
+      result:"isRefEqual"      --> true of both "isRefSubSet" and "isRefSuperSet" are true (which means that "e" and "ref" describe the same set)
+      result:"refIntersection" --> the intersection PLA between "e" and "ref", this can be the empty set.
+      result:"isRefOverlap"  --> true, if "refIntersection" is not empty
+    
+
+
+
+*/
 
 int sop_json_add_result(cJSON *result, dclist ref, dclist e)
 {
@@ -493,8 +521,8 @@ int sop_json_string(const char *s)
   code = sop_json_reference_intersection(json);
   if ( code > 0 ) return code;
 
-      s = cJSON_Print(json);    
-    puts(s);
+  s = cJSON_Print(json);    
+  puts(s);
 
   return 0;
 }
